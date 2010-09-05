@@ -1,0 +1,103 @@
+%%% This template was originally exported from LyX
+%%% and modified manually later on.
+
+\documentclass[polish]{dinbrief}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{array}
+
+\makeatletter
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LyX specific LaTeX commands.
+\newcommand{\lyxline}[1][1pt]{%
+  \par\noindent%
+  \rule[.5ex]{\linewidth}{#1}\par}
+%% Because html converters don't know tabularnewline
+\providecommand{\tabularnewline}{\\}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Textclass specific LaTeX commands.
+\newcommand{\areacode}{}
+
+\makeatother
+
+\usepackage{babel}
+
+\begin{document}
+\begin{flushleft}
+\textbf{\Large Faktura VAT}
+\par\end{flushleft}{\Large \par}
+
+\begin{flushleft}
+\emph{Numer:} <% @var invoice-id %>\\
+\emph{Data wystawienia:} <% @var invoice-date-full %>\\
+\emph{Data sprzedaży:} <% @var invoice-date-full %>
+\par\end{flushleft}
+
+\begin{flushleft}
+\medskip{}
+
+\par\end{flushleft}
+
+\lyxline{\normalsize}
+
+%%%
+%%% This is the buyer-seller section.
+%%%
+
+\begin{flushleft}
+\begin{tabular}{|l|l|l|}
+\cline{1-1} \cline{3-3} 
+\emph{Sprzedawca:} &  & \emph{Nabywca:}\tabularnewline
+\cline{1-1} \cline{3-3} 
+Grzymała Design &  & <% @var buyer-name %>\tabularnewline
+Odyńca 7 m. 9 &  & <% @var buyer-address %>\tabularnewline
+02-606 Warszawa &  & <% @var buyer-postcode %> <% @var buyer-city %>\tabularnewline
+NIP: 521-174-36-40 &  & NIP: <% @var buyer-nip %>\tabularnewline
+Konto: 30 1140 2004 0000 3802 1456 7893 &  & \tabularnewline
+\cline{1-1} \cline{3-3} 
+\end{tabular}
+\par\end{flushleft}
+
+\medskip{}
+
+\lyxline{\normalsize}
+
+%%%
+%%% This is the item list section
+%%%
+
+\begin{flushright}
+\medskip{}
+\begin{tabular}{r>{\raggedleft}p{0.2\paperwidth}rr|r|r|r|r|}
+lp. & nazwa & cena netto & \multicolumn{1}{r}{ilość} & \multicolumn{1}{r}{wartość netto} & \multicolumn{1}{r}{VAT} & \multicolumn{1}{r}{kwota VAT} & \multicolumn{1}{r}{wartość brutto}\tabularnewline
+\hline 
+\multicolumn{1}{|r|}{<number>} & \multicolumn{1}{>{\raggedleft}p{0.2\paperwidth}|}{<item-name>} & \multicolumn{1}{r|}{<item-net-price> zł} & <item-count> & <item-net-value> zł & <vat>\% & <vat-value> zł & <item-gross-value> zł\tabularnewline
+\hline 
+ &  &  & Łącznie: & <net-total> zł & X & <vat-total> zł & <gross-total> zł\tabularnewline
+\cline{5-8} 
+ &  &  &  & <22-net-total> zł & 22\% & <22-vat-total> zł & <22-gross-total> zł\tabularnewline
+\cline{5-8} 
+ &  &  &  & <7-net-total> zł & 7\% & <7-vat-total> zł & <7-gross-total> zł\tabularnewline
+\cline{5-8} 
+ &  &  &  & <3-net-total> zł & 3\% & <3-vat-total> zł & <3-gross-total> zł\tabularnewline
+\cline{5-8} 
+ &  &  &  & <zw-net-total> zł & zw. & <zw-vat-total> zł & <zw-gross-total> zł\tabularnewline
+\cline{5-8} 
+\end{tabular}
+\par\end{flushright}
+
+\medskip{}
+
+%%%
+%%% This is the footer with the payment spelled out in words and payment type/date
+%%%
+
+
+\begin{flushright}
+Do zapłaty: <gross-total> zł.\\
+Słownie: <words-gross-total>, <gross-total-cent>/100.\\
+Forma płatności: <payment-form>.\\
+Termin płatności: <payment-date>.
+\par\end{flushright}
+\end{document}
