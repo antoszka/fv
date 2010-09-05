@@ -19,13 +19,13 @@
 ;;; (print-invoice) in conjunction with:
 ;;;   (select-invoice-by-id)
 ;;;
-;;; remaning are helper functions and similar
+;;; remaning are helper functions and similar crap
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; TODO:
 ;;; * removing entries from database
 ;;; * printing invoices (or creating .tex files rather)
-;;;   * with cardinal numbers printed out in full (in Polish) ← kinda „done”
+;;;   * with cardinal numbers printed out in full (in Polish) ← somewhat „done”
 ;;;   * with netto/brutto calculations and groupings
 ;;; * selecting invoices by certain criteria
 ;;; * interactive mode with browsing clients/items
@@ -279,4 +279,3 @@
 			    :if-exists :supersede)
       (with-standard-io-syntax
 	(write (emb:execute-emb "template") :stream output)))))
-
