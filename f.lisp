@@ -51,9 +51,9 @@
   (make-pathname
    :directory '(:absolute "home" "antoni" "fv")))
 
-(load (merge-pathnames
-       *program-directory*
-       (make-pathname :name "polish" :type "lisp")))
+(load (compile-file (merge-pathnames
+		     *program-directory*
+		     (make-pathname :name "polish" :type "lisp"))))
 
 ;;; initialize the database and set default database filename:
 
@@ -253,16 +253,17 @@
 
 (defun print-invoice (invoice)
   (require 'cl-emb)
-  (let* ((invoice-id        (getf invoice :id))
-	 (invoice-date-full (format nil "~a/~a/~a"
-				    (getf invoice :date)
-				    (getf invoice :month)
-				    (getf invoice :year)))
-	 (buyer-name        (getf (getf invoice :client) :name))
-	 (buyer-address     (getf (getf invoice :client) :address))
-	 (buyer-postcode    (getf (getf invoice :client) :postcode))
-	 (buyer-nip         (getf (getf invoice :client) :nip))
-	 (item-list         (getf invoice :items))
+  (let* ((env-plist
+	  (list :invoice-id        (getf invoice :id)
+		:invoice-date-full (format nil "~a/~a/~a"
+					   (getf invoice :date)
+					   (getf invoice :month)
+					   (getf invoice :year))
+		:buyer-name        (getf (getf invoice :client) :name)
+		:buyer-address     (getf (getf invoice :client) :address)
+		:buyer-postcode    (getf (getf invoice :client) :postcode)
+		:buyer-nip         (getf (getf invoice :client) :nip)
+		:item-list         (getf invoice :items)))
 	 (output-filename   (merge-pathnames
 			     (user-homedir-pathname)
 			     (format nil "fv-~d-~d-~d-~a.tex"
@@ -270,20 +271,11 @@
 				     (getf invoice :month)
 				     (getf invoice :year)
 				     (getf (getf invoice :client) :nick)))))
-    ;; DEBUG:
-    (format nil "~%FILENAME:~10t~a~%ID:~10t~a~%DATE:~10t~a~%~
-		 NAME:~10t~a~%ADDRESS:~10t~a~%POSTCODE:~10t~a~%~
-		 NIP:~10t~a~%~%ITEMS:~%~{~a:~10t~a~%~}~%"
-		 output-filename invoice-id invoice-date-full
-		 buyer-name buyer-address buyer-postcode buyer-nip
-		 item-list)
-    ;; END DEBUG
-    (emb:register-emb "template" (merge-pathnames
-				  *program-directory* (make-pathname :name "emb-template"
-								     :type "tex")))
-    (with-open-file (output (merge-pathnames
-			     (user-homedir-pathname) output-filename)
+    (emb:register-emb "template" (merge-pathnames *program-directory*
+						  (make-pathname :name "emb-template"
+								 :type "tex")))
+    (with-open-file (output (merge-pathnames (user-homedir-pathname)
+					     output-filename)
 			    :direction :output
 			    :if-exists :supersede)
-      (with-standard-io-syntax
-	(write (emb:execute-emb "template") :stream output)))))
+      (format output "~a" (emb:execute-emb "template" :env env-plist)))))
