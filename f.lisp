@@ -43,6 +43,15 @@
 ;;; (make-invoice :client (select-by-nick :client 'asp) :items (adjust-key (select-by-nick 'adminowanie-asp :item) :count 2))
 ;;; (add-to-db (↑))
 
+(require 'cl-emb)
+
+;;;
+;;; clhs appendf
+;;;
+
+(define-modify-macro appendf (&rest args)
+  append "Append onto list")
+
 ;;;
 ;;; load Dodek's code for translating numbers to Polish:
 ;;;
@@ -81,7 +90,7 @@
    :nick  nick))
 
 (defun make-client (&key name address postcode (city "Warszawa")
-		    nip email nick payment-cash (payment-days 7))
+		    nip email nick (payment-days 7))
   "Create a client inventory item with name, address, postcode, city, nip, e-mail and nick"
   (list
    :type         'client ; ← this tells us this is a client *db* entry
@@ -92,11 +101,10 @@
    :nip          nip
    :email        email
    :nick         nick
-   :payment-cash payment-cash ; ← nil (default) means we want a bank transfer
-   :payment-days payment-days))
+   :payment-days payment-days)) ; ← 0 means we want cash (7 is default)
 
-(defun make-invoice (&key client items payment-cash
-		     (payment-days 7) year month date number)
+(defun make-invoice (&key client items (payment-days 7)
+		     year month date number)
   "Create an invoice with client, item list and date, payment type (not nil for cash) and payment days."
   (let* ((universal-time (get-universal-time))
 	 (invoice-year   (or year   (getdate 'year  universal-time)))
@@ -119,8 +127,7 @@
      :date         invoice-date
      :number       invoice-number
      :id           invoice-id
-     :payment-cash payment-cash	; ← nil means we want a money transfer
-     :payment-days payment-days)))
+     :payment-days payment-days))) ; ← 0 means we want cash
 
 ;;;
 ;;; return nearest possible invoice number (for a given month/year)
@@ -199,27 +206,23 @@
 	(id     (getf entry :id)))
     (cond
       ((equal type 'item)
-       (if (or (select-by-nick nick :item) (not nick))
-	   (error "~S already exists as an item nick or nick empty." nick)
-	   t)
+       (when (or (select-by-nick nick :item) (not nick))
+	   (error "~S already exists as an item nick or nick empty." nick))
        (push entry (getf *db* :item)))
       ((equal type 'client)
-       (if (or (select-by-nick nick :client) (not nick))
-	   (error "~S already exists as an item nick or nick empty." nick)
-	   t)
-       (if (or (correct-nip-p nip) (not nip))
-	   (error "~S is not a correct NIP number." nip)
-	   t)
+       (when (or (select-by-nick nick :client) (not nick))
+	   (error "~S already exists as an item nick or nick empty." nick))
+       (when (or (correct-nip-p nip) (not nip))
+	   (error "~S is not a correct NIP number." nip))
        (push entry (getf *db* :client)))
       ((equal type 'invoice)
-       (if (or (select-invoice-by-id id) (not id))
-	   (error "~S already exists as an invoice id." id)
-	   t)
+       (when (or (select-invoice-by-id id) (not id))
+	   (error "~S already exists as an invoice id." id))
        (push entry (getf *db* :invoice)))
       (t nil))))
 
 ;;;
-;;; dump stuff function
+;;; dump stuff function (DEBUG)
 ;;;
 
 (defun dump-db (type)
@@ -246,13 +249,108 @@
       (setf *db* (read input)))))
 
 ;;;
+;;; calculate all necessary invoice fields
+;;;
+
+(defun calculate-invoice-fields (invoice)
+  (let* ((gross-total       0)
+	 (gross-total-int   0)
+	 (gross-total-cent  0)
+	 (net-total         0)
+	 (vat-total         0)
+	 (words-gross-total "")
+	 (payment-days      (getf (getf invoice :client) :payment-days))
+	 (invoice-date      (getf (getf invoice :client) :payment-days))
+	 (invoice-month     (getf (getf invoice :client) :payment-days))
+	 (invoice-year      (getf (getf invoice :client) :payment-days))
+	 (payment-form      "")
+	 (22-net-total      0)
+	 (22-vat-total      0)
+	 (22-gross-total    0)
+	 (7-net-total       0)
+	 (7-vat-total       0)
+	 (7-gross-total     0)
+	 (3-net-total       0)
+	 (3-vat-total       0)
+	 (3-gross-total     0)
+	 (zw-net-total      0)
+	 (calculated-items  nil))
+    (dolist (item (list (getf invoice :items))) ;;; SERIO MA BYĆ LIST?
+      (let* ((item-vat       (getf item :vat))
+	     (item-count     (getf item :count))
+	     (item-name      (getf item :name))
+	     (item-net       (getf item :net))
+	     (vat-multiplier (/ (if (equal item-vat "zw")
+				    0
+				    item-vat) 100.0)))
+	(cond ((equal item-vat 22)   (incf 22-net-total   (* item-count item-net))
+	       (incf 22-vat-total   (* item-count item-net 0.22))
+	       (incf 22-gross-total (* item-count item-net 1.22)))
+	      ((equal item-vat 7)    (incf 7-net-total    (* item-count item-net))
+	       (incf 7-vat-total    (* item-count item-net 0.07))
+	       (incf 7-gross-total  (* item-count item-net 1.07)))
+	      ((equal item-vat 3)    (incf 3-net-total    (* item-count item-net))
+	       (incf 3-vat-total    (* item-count item-net 0.03))
+	       (incf 3-gross-total  (* item-count item-net 1.03)))
+	      ((equal item-vat "zw") (incf zw-net-total   (* item-count item-net))))
+	(push (list item-name
+		    item-net
+		    item-count
+		    (* item-net item-count)
+		    item-vat
+		    (* item-net item-count vat-multiplier)
+		    (* item-net item-count (1+ vat-multiplier)))
+	      calculated-items)))
+    (setq gross-total (+ 22-gross-total 7-gross-total 3-gross-total zw-net-total))
+    (setq net-total   (+ 22-net-total   7-net-total   3-net-total   zw-net-total))
+    (setq vat-total   (+ 22-vat-total   7-vat-total   3-vat-total))
+    (multiple-value-bind (int cent)
+	(floor gross-total)
+      (setq gross-total-int  int)
+      (setq gross-total-cent cent))
+    (setq words-gross-total (with-output-to-string (words)
+			      (format-print-cardinal words gross-total)))
+    (setq payment-form
+	  (if (<= payment-days 0)
+	      "Płatność gotówką."
+	      (multiple-value-bind (a b c day month year d e f)
+		  (decode-universal-time
+		   (+ (* payment-days 86400)
+		      (encode-universal-time
+		       0 0 0 invoice-date invoice-month invoice-year)))
+		(declare (ignore a b c d e f))
+		(format nil
+			"Płatność przelewem do dnia: ~d/~d/~d (~d dni)."
+			day month year payment-days))))
+    (list :gross-total       gross-total
+	  :gross-total-int   gross-total-int
+	  :gross-total-cent  gross-total-cent
+	  :net-total         net-total
+	  :vat-total         vat-total
+	  :words-gross-total words-gross-total
+	  :payment-days      payment-days
+	  :invoice-date      invoice-date
+	  :invoice-month     invoice-month
+	  :invoice-year      invoice-year
+	  :payment-form      payment-form
+	  :22-net-total      22-net-total
+	  :22-vat-total      22-vat-total
+	  :22-gross-total    22-gross-total
+	  :7-net-total       7-net-total
+	  :7-vat-total       7-vat-total
+	  :7-gross-total     7-gross-total
+	  :3-net-total       3-net-total
+	  :3-vat-total       3-vat-total
+	  :3-gross-total     3-gross-total
+	  :zw-net-total      zw-net-total
+	  :calculated-items  calculated-items)))
+
+;;;
 ;;; printing an invoice
 ;;; date calculation hint:
-;;;   (decode-universal-time (+ (* 14 86400) (encode-universal-time 0 0 0 28 8 2010)))
 ;;;
 
 (defun print-invoice (invoice)
-  (require 'cl-emb)
   (let* ((env-plist
 	  (list :invoice-id        (getf invoice :id)
 		:invoice-date-full (format nil "~a/~a/~a"
@@ -264,18 +362,19 @@
 		:buyer-postcode    (getf (getf invoice :client) :postcode)
 		:buyer-nip         (getf (getf invoice :client) :nip)
 		:item-list         (getf invoice :items)))
-	 (output-filename   (merge-pathnames
-			     (user-homedir-pathname)
-			     (format nil "fv-~d-~d-~d-~a.tex"
-				     (getf invoice :number)
-				     (getf invoice :month)
-				     (getf invoice :year)
-				     (getf (getf invoice :client) :nick)))))
+	 (output-filename (merge-pathnames
+			   (user-homedir-pathname)
+			   (format nil "fv-~d-~d-~d-~a.tex"
+				   (getf invoice :year)
+				   (getf invoice :month)
+				   (getf invoice :number)
+				   (getf (getf invoice :client) :nick)))))
     (emb:register-emb "template" (merge-pathnames *program-directory*
 						  (make-pathname :name "emb-template"
 								 :type "tex")))
-    (with-open-file (output (merge-pathnames (user-homedir-pathname)
-					     output-filename)
+    (with-open-file (output (merge-pathnames (user-homedir-pathname) output-filename)
 			    :direction :output
 			    :if-exists :supersede)
-      (format output "~a" (emb:execute-emb "template" :env env-plist)))))
+      (format output "~a"
+	      (emb:execute-emb "template"
+			       :env (append env-plist (calculate-invoice-fields invoice)))))))
