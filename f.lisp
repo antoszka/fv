@@ -305,7 +305,8 @@
 		    (polish-monetize item-net)
 		    item-count
 		    (polish-monetize (* item-net item-count))
-		    item-vat
+		    (if (equal item-vat "zw") "zw."
+			(format nil "%d%%" item-vat))
 		    (polish-monetize (* item-net item-count vat-multiplier))
 		    (polish-monetize (* item-net item-count (1+ vat-multiplier))))
 	      calculated-items)
