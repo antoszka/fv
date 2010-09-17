@@ -24,9 +24,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; TODO:
 ;;; * removing entries from database
-;;; * printing invoices (or creating .tex files rather)
-;;;   * with cardinal numbers printed out in full (in Polish) ← somewhat „done”
-;;;   * with net/gross calculations and groupings
 ;;; * selecting invoices by certain criteria
 ;;; * interactive mode (text UI) with browsing clients/items
 ;;; * command-line switches for scripting
@@ -279,15 +276,17 @@
 	 (3-vat-total       0)
 	 (3-gross-total     0)
 	 (zw-net-total      0)
+	 (item-position     1)
 	 (calculated-items  nil))
     (dolist (item (getf invoice :items)) ;; ← *should* be a list
       (let* ((item-vat       (getf item :vat))
 	     (item-count     (getf item :count))
-	     (item-name      (getf item :name))
+	     (item-title     (getf item :title))
 	     (item-net       (getf item :net))
-	     (vat-multiplier (/ (if (equal item-vat "zw")
-				    0
-				    item-vat) 100.0)))
+	     (vat-multiplier (/ (if (equal item-vat "zw") ;; the "zw" (zwolniony)
+				    0                     ;; VAT rate is
+				    item-vat)             ;; effectively 0%
+				100)))                    ;; TODO – check if interger here OK
 	(cond ((equal item-vat 22)   (incf 22-net-total   (* item-count item-net))
 	       (incf 22-vat-total   (* item-count item-net 0.22))
 	       (incf 22-gross-total (* item-count item-net 1.22)))
@@ -298,26 +297,28 @@
 	       (incf 3-vat-total    (* item-count item-net 0.03))
 	       (incf 3-gross-total  (* item-count item-net 1.03)))
 	      ((equal item-vat "zw") (incf zw-net-total   (* item-count item-net))))
-	(push (list item-name
-		    item-net
+	(push (list item-position
+	            item-title
+		    (polish-monetize item-net)
 		    item-count
-		    (* item-net item-count)
+		    (polish-monetize (* item-net item-count))
 		    item-vat
-		    (* item-net item-count vat-multiplier)
-		    (* item-net item-count (1+ vat-multiplier)))
-	      calculated-items)))
+		    (polish-monetize (* item-net item-count vat-multiplier))
+		    (polish-monetize (* item-net item-count (1+ vat-multiplier))))
+	      calculated-items)
+	(incf item-position)))
     (setq gross-total (+ 22-gross-total 7-gross-total 3-gross-total zw-net-total))
     (setq net-total   (+ 22-net-total   7-net-total   3-net-total   zw-net-total))
     (setq vat-total   (+ 22-vat-total   7-vat-total   3-vat-total))
     (multiple-value-bind (int cent)
-	(floor gross-total)
+	(floor (read-from-string (format nil "~$" gross-total)))
       (setq gross-total-int  int)
       (setq gross-total-cent cent))
     (setq words-gross-total (with-output-to-string (words)
-			      (format-print-cardinal words gross-total)))
+			      (format-print-cardinal words gross-total-int)))
     (setq payment-form
 	  (if (<= payment-days 0)
-	      "Płatność gotówką."
+	      "Płatne gotówką."
 	      (multiple-value-bind (a b c day month year d e f)
 		  (decode-universal-time
 		   (+ (* payment-days 86400)
@@ -325,31 +326,40 @@
 		       0 0 0 invoice-date invoice-month invoice-year)))
 		(declare (ignore a b c d e f))
 		(format nil
-			"Płatność przelewem do dnia: ~d/~d/~d (~d dni)."
+			"Płatne przelewem do dnia: ~d/~d/~d (~d dni)."
 			day month year payment-days))))
     ;; now we return all we calculated in a single plist:
-    (list :gross-total       gross-total
+    (list :gross-total       (polish-monetize gross-total)
 	  :gross-total-int   gross-total-int
 	  :gross-total-cent  gross-total-cent
-	  :net-total         net-total
-	  :vat-total         vat-total
-	  :words-gross-total words-gross-total
+	  :net-total         (polish-monetize net-total)
+	  :vat-total         (polish-monetize vat-total)
+	  :words-gross-total (polish-monetize words-gross-total)
 	  :payment-days      payment-days
 	  :invoice-date      invoice-date
 	  :invoice-month     invoice-month
 	  :invoice-year      invoice-year
 	  :payment-form      payment-form
-	  :22-net-total      22-net-total
-	  :22-vat-total      22-vat-total
-	  :22-gross-total    22-gross-total
-	  :7-net-total       7-net-total
-	  :7-vat-total       7-vat-total
-	  :7-gross-total     7-gross-total
-	  :3-net-total       3-net-total
-	  :3-vat-total       3-vat-total
-	  :3-gross-total     3-gross-total
-	  :zw-net-total      zw-net-total
+	  :22-net-total      (polish-monetize 22-net-total)
+	  :22-vat-total      (polish-monetize 22-vat-total)
+	  :22-gross-total    (polish-monetize 22-gross-total)
+	  :7-net-total       (polish-monetize 7-net-total)
+	  :7-vat-total       (polish-monetize 7-vat-total)
+	  :7-gross-total     (polish-monetize 7-gross-total)
+	  :3-net-total       (polish-monetize 3-net-total)
+	  :3-vat-total       (polish-monetize 3-vat-total)
+	  :3-gross-total     (polish-monetize 3-gross-total)
+	  :zw-net-total      (polish-monetize zw-net-total)
 	  :calculated-items  calculated-items)))
+
+;;;
+;;; Convert a float to a string with 2 decimal places, and a decimal comma
+;;;
+
+(defun polish-monetize (value)
+  (substitute #\, #\.
+	      (format nil "~$" value)))
+
 
 ;;;
 ;;; printing an invoice
