@@ -316,7 +316,7 @@
     (multiple-value-bind (int cent)
 	(floor (read-from-string (format nil "~$" gross-total)))
       (setq gross-total-int  int)
-      (setq gross-total-cent (floor (* cent 100v))))
+      (setq gross-total-cent (floor (* cent 100))))
     (setq words-gross-total (with-output-to-string (words)
 			      (format-print-cardinal words gross-total-int)))
     (setq payment-form
