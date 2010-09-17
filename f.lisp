@@ -12,7 +12,8 @@
 ;;;   (make-client)
 ;;;   (make-item)
 ;;;   (make-invoice) used in conjunction with:
-;;;     (select-by-nick)
+;;;     (select-by-nick ...) or
+;;;     (adjust-key (select-by-nick ...))
 ;;;
 ;;; (read-db)
 ;;; (write-db)
@@ -56,9 +57,11 @@
   (make-pathname
    :directory '(:absolute "home" "antoni" "fv")))
 
-(load (compile-file (merge-pathnames
-		     *program-directory*
-		     (make-pathname :name "polish" :type "lisp"))))
+;;; We probably don't need the snippet below, as we've set up an asdf system.
+;;;
+;;; (load (compile-file (merge-pathnames
+;;;		     *program-directory*
+;;;		     (make-pathname :name "polish" :type "lisp"))))
 
 ;;; initialize the database and set default database filename:
 
@@ -262,9 +265,9 @@
 	 (vat-total         0)
 	 (words-gross-total "")
 	 (payment-days      (getf (getf invoice :client) :payment-days))
-	 (invoice-date      (getf (getf invoice :client) :payment-days))
-	 (invoice-month     (getf (getf invoice :client) :payment-days))
-	 (invoice-year      (getf (getf invoice :client) :payment-days))
+	 (invoice-date      (getf invoice :date))
+	 (invoice-month     (getf invoice :month))
+	 (invoice-year      (getf invoice :year))
 	 (payment-form      "")
 	 (22-net-total      0)
 	 (22-vat-total      0)
@@ -313,7 +316,7 @@
     (multiple-value-bind (int cent)
 	(floor (read-from-string (format nil "~$" gross-total)))
       (setq gross-total-int  int)
-      (setq gross-total-cent cent))
+      (setq gross-total-cent (floor (* cent 100v))))
     (setq words-gross-total (with-output-to-string (words)
 			      (format-print-cardinal words gross-total-int)))
     (setq payment-form
