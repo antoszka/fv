@@ -320,21 +320,13 @@
       (setq gross-total-cent (floor (* cent 100))))
     (setq words-gross-total (with-output-to-string (words)
 			      (format-print-cardinal words gross-total-int)
-			      (format words " ")
-			      (format words "~a"
+			      (format words " ~a"
 				      (multiple-value-bind (tens ones)
 					  (truncate gross-total-int 10)
-					(if (= tens 0)
+					(if (and (= tens 0) (= ones 1))
+					    "złoty"
 					    (case ones
-					      (1 "złoty")
-					      (2 "złote")
-					      (3 "złote")
-					      (4 "złote")
-					      (otherwise "złotych"))
-					    (case ones
-					      (2 "złote")
-					      (3 "złote")
-					      (4 "złote")
+					      ((2 3 4) "złote")
 					      (otherwise "złotych")))))))
     (setq payment-form
 	  (if (<= payment-days 0)
