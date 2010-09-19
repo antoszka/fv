@@ -369,9 +369,15 @@
 ;;;
 
 (defun polish-monetize (value)
-  (substitute #\, #\.
-	      (format nil "~$" value)))
-
+  (reverse
+   (coerce 
+    (loop for char across (reverse (substitute #\, #\. (format nil "~$" value)))
+	 counting char into count
+	 collect char
+	 when (and (equal 0 (mod count 3))
+		   (> count 5))
+	 collect #\.)
+    'string)))
 
 ;;;
 ;;; printing an invoice
