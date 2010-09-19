@@ -327,6 +327,7 @@
 					(if (= tens 0)
 					    (case ones
 					      (1 "złoty")
+					      (2 "złote")
 					      (3 "złote")
 					      (4 "złote")
 					      (otherwise "złotych"))
