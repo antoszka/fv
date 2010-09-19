@@ -290,16 +290,20 @@
 				    0                     ;; VAT rate is
 				    item-vat)             ;; effectively 0%
 				100)))                    ;; TODO – check if interger here OK
-	(cond ((equal item-vat 22)   (incf 22-net-total   (* item-count item-net))
+	(cond ((equal item-vat 22)  
+	       (incf 22-net-total   (* item-count item-net))
 	       (incf 22-vat-total   (* item-count item-net 0.22))
 	       (incf 22-gross-total (* item-count item-net 1.22)))
-	      ((equal item-vat 7)    (incf 7-net-total    (* item-count item-net))
+	      ((equal item-vat 7)   
+	       (incf 7-net-total    (* item-count item-net))
 	       (incf 7-vat-total    (* item-count item-net 0.07))
 	       (incf 7-gross-total  (* item-count item-net 1.07)))
-	      ((equal item-vat 3)    (incf 3-net-total    (* item-count item-net))
+	      ((equal item-vat 3)
+	       (incf 3-net-total    (* item-count item-net))
 	       (incf 3-vat-total    (* item-count item-net 0.03))
 	       (incf 3-gross-total  (* item-count item-net 1.03)))
-	      ((equal item-vat "zw") (incf zw-net-total   (* item-count item-net))))
+	      ((equal item-vat "zw") 
+	       (incf zw-net-total   (* item-count item-net))))
 	(push (list item-position
 	            item-title
 		    (polish-monetize item-net)
@@ -346,7 +350,7 @@
 	  :gross-total-cent  gross-total-cent
 	  :net-total         (polish-monetize net-total)
 	  :vat-total         (polish-monetize vat-total)
-	  :words-gross-total (polish-monetize words-gross-total)
+	  :words-gross-total words-gross-total
 	  :payment-days      payment-days
 	  :invoice-date      invoice-date
 	  :invoice-month     invoice-month
@@ -369,15 +373,16 @@
 ;;;
 
 (defun polish-monetize (value)
-  (reverse
-   (coerce 
-    (loop for char across (reverse (substitute #\, #\. (format nil "~$" value)))
-	 counting char into count
-	 collect char
-	 when (and (equal 0 (mod count 3))
-		   (> count 5))
-	 collect #\.)
-    'string)))
+  (let* ((reversed-string (reverse (substitute #\, #\. (format nil "~$" value))))
+	 (reversed-length (length reversed-string)))
+    (reverse
+     (concatenate 'string 
+		  (loop for char across reversed-string
+		     counting char into count
+		     collect char
+		     when (and (eq 0 (mod count 3))
+			       (> count 5)
+			       (< count reversed-length)) collect #\.)))))
 
 ;;;
 ;;; printing an invoice
