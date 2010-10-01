@@ -50,7 +50,8 @@
 ;;  append "Append onto list")
 
 ;;;
-;;; load Dodek's code for translating numbers to Polish:
+;;; Define the program directory (for loading the template and such).
+;;; DO MODIFY this for your own installation.
 ;;;
 
 (defvar *program-directory*
@@ -104,17 +105,20 @@
 
 (defun make-invoice (&key client items (payment-days 7)
 		     year month date number)
-  "Create an invoice with client, item list and date, payment type (not nil for cash) and payment days."
+  "Create an invoice with client, item list and date, payment
+type (not nil for cash) and payment days."
   (let* ((universal-time (get-universal-time))
 	 (invoice-year   (or year   (getdate 'year  universal-time)))
 	 (invoice-month  (or month  (getdate 'month universal-time)))
 	 (invoice-date   (or date   (getdate 'date  universal-time)))
-	 (invoice-number (or number (get-highest-number :for-month invoice-month :for-year invoice-year)))
+	 (invoice-number (or number (get-highest-number :for-month invoice-month
+							:for-year invoice-year)))
 	 (invoice-id     (format nil "FV-~d/~d/~d" invoice-number invoice-month invoice-year)))
     ;; the above is to avoid a race-condition and make sure we create
     ;; a date in an atomic operation
-    (when (not (listp (elt items 0)))
-      (error "Item list should be a nested list"))
+    (when (or (null items)
+	      (listp (elt items 0)))
+      (error "Item list should be a nested list: ((plist1) (plist2) (...))"))
     (list
      :type         'invoice
      :client       client
@@ -124,7 +128,7 @@
      :date         invoice-date
      :number       invoice-number
      :id           invoice-id
-     :payment-days payment-days))) ; ← 0 means we want cash
+     :payment-days payment-days)))	; ← 0 means we want cash
 
 ;;;
 ;;; return nearest possible invoice number (for a given month/year)
@@ -188,6 +192,7 @@
 ;;;
 
 (defun correct-nip-p (nip)
+  "Check the NIP (VAT number) for correctness, expects an int"
   (if (let ((nip-string (format nil "~d" nip)))
 	(when (= (length nip-string) 10)
 	  (let ((checksum (loop for w in '(6 5 7 2 3 4 5 6 7)
@@ -208,17 +213,21 @@
 	(id     (getf entry :id)))
     (cond
       ((equal type 'item)
-       (when (or (select-by-nick nick :item) (not nick))
+       (when (or (select-by-nick nick :item)
+		 (not nick))
 	 (error "~S already exists as an item nick or nick empty." nick))
        (push entry (getf *db* :item)))
       ((equal type 'client)
-       (when (or (select-by-nick nick :client) (not nick))
+       (when (or (select-by-nick nick :client)
+		 (not nick))
 	 (error "~S already exists as an item nick or nick empty." nick))
-       (when (or (correct-nip-p nip) (not nip))
+       (when (or (correct-nip-p nip)
+		 (not nip))
 	 (error "~S is not a correct NIP number." nip))
        (push entry (getf *db* :client)))
       ((equal type 'invoice)
-       (when (or (select-invoice-by-id id) (not id))
+       (when (or (select-invoice-by-id id)
+		 (not id))
 	 (error "~S already exists as an invoice id." id))
        (push entry (getf *db* :invoice)))
       (t nil))))
@@ -257,7 +266,8 @@
 ;;;
 
 (defun calculate-invoice-fields (invoice)
-  "Returns a plist with calculations of various invoice fields needed for invoice visualisation and printout."
+  "Returns a plist with calculations of various invoice fields needed
+for invoice visualisation and printout."
   (let* ((gross-total       0) ;; do we need to declare all those here?
 	 (gross-total-int   0)
 	 (gross-total-cent  0)
@@ -370,13 +380,16 @@
 
 ;;;
 ;;; Convert a float to a string with 2 decimal places, and a decimal comma
+;;; How about using: (format nil "~,,'.,3:D" number)?
 ;;;
 
 (defun polish-monetize (value)
+  "Convert a float to a properly rounded string (to cents) with a
+decimal comma and thousand dot separators."
   (let* ((reversed-string (reverse (substitute #\, #\. (format nil "~$" value))))
 	 (reversed-length (length reversed-string)))
     (reverse
-     (concatenate 'string 
+     (concatenate 'string
 		  (loop for char across reversed-string
 		     counting char into count
 		     collect char
@@ -386,7 +399,6 @@
 
 ;;;
 ;;; printing an invoice
-;;; date calculation hint:
 ;;;
 
 (defun print-invoice (invoice)
@@ -404,7 +416,7 @@
 		:item-list         (getf invoice :items)))
 	 (output-filename (merge-pathnames
 			   (user-homedir-pathname)
-			   (format nil "fv-~d-~d-~d-~a.tex"
+			   (format nil "fv-~d-~2,'0d-~2,'0d-~a.tex"
 				   (getf invoice :year)
 				   (getf invoice :month)
 				   (getf invoice :number)
