@@ -2,11 +2,12 @@
 ;;;
 ;;; f.lisp – (c) 2010 Antoni Grzymała
 ;;;
-;;; This is my personal invoicing program, might only ever be useful
-;;; in the Polish VAT-invoice area.
+;;; This is my personal invoicing program, might only be useful in its
+;;; current form in the Polish VAT-invoice area.
 ;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
 ;;; for now, the useful public interface of this is limited to:
 ;;; (add-to-db) used in conjunction with:
 ;;;   (make-client)
@@ -23,6 +24,7 @@
 ;;; remaning are helper functions and similar crap
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
 ;;; TODO:
 ;;; * removing entries from database
 ;;; * selecting invoices by certain criteria
@@ -69,6 +71,10 @@
 (defvar *db* (list :item () :client () :invoice ()))
 (defvar *db-file* (merge-pathnames (user-homedir-pathname) #P".fv.db"))
 
+;;; and some system constants:
+
+(setf *read-default-float-format* 'long-float)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; Some needed functions
@@ -90,7 +96,7 @@
    :nick  nick))
 
 (defun make-client (&key name address postcode (city "Warszawa")
-		    nip email nick (payment-days 7))
+		    nip email nick (default-item nil) (payment-days 7))
   "Create a client inventory item with name, address, postcode, city, nip, e-mail and nick"
   (list
    :type         'client ; ← this tells us this is a client *db* entry
@@ -101,6 +107,7 @@
    :nip          nip
    :email        email
    :nick         nick
+   :default-item default-item
    :payment-days payment-days)) ; ← 0 means we want cash (7 is default)
 
 (defun make-invoice (&key client items (payment-days 7)
@@ -117,7 +124,7 @@ type (not nil for cash) and payment days."
     ;; the above is to avoid a race-condition and make sure we create
     ;; a date in an atomic operation
     (when (or (null items)
-	      (listp (elt items 0)))
+	      (not (listp (elt items 0))))
       (error "Item list should be a nested list: ((plist1) (plist2) (...))"))
     (list
      :type         'invoice
@@ -233,13 +240,15 @@ type (not nil for cash) and payment days."
       (t nil))))
 
 ;;;
-;;; dump stuff function (DEBUG)
+;;; dump stuff function
 ;;;
 
-(defun dump-db (type)
+(defun dump-db (type &optional field)
   "Quick view of the db (selected by type)"
-  (dolist (db-entry (getf *db* type))
-    (format t "~{~a:~10t~a~%~}~%" db-entry)))
+  (dolist (entry (getf *db* type))
+    (format t "~{~a:~10t~a~%~}~%" (if field
+				      (list field (getf entry field)) ;; 
+				      entry))))
 
 ;;;
 ;;; saving and loading the db
@@ -297,9 +306,9 @@ for invoice visualisation and printout."
 	     (item-title     (getf item :title))
 	     (item-net       (getf item :net))
 	     (vat-multiplier (/ (if (equal item-vat "zw") ;; the "zw" (zwolniony)
-				    0                     ;; VAT rate is
-				    item-vat)             ;; effectively 0%
-				100)))                    ;; TODO – check if interger here OK
+				    0	      ;; VAT rate is
+				    item-vat) ;; effectively 0%
+				100))) ;; TODO – check if interger here OK
 	(cond ((equal item-vat 22)  
 	       (incf 22-net-total   (* item-count item-net))
 	       (incf 22-vat-total   (* item-count item-net 0.22))
@@ -325,24 +334,31 @@ for invoice visualisation and printout."
 		    (polish-monetize (* item-net item-count (1+ vat-multiplier))))
 	      calculated-items)
 	(incf item-position)))
-    (setq gross-total (+ 22-gross-total 7-gross-total 3-gross-total zw-net-total))
-    (setq net-total   (+ 22-net-total   7-net-total   3-net-total   zw-net-total))
-    (setq vat-total   (+ 22-vat-total   7-vat-total   3-vat-total))
-    (multiple-value-bind (int cent)
-	(floor (read-from-string (format nil "~$" gross-total)))
-      (setq gross-total-int  int)
-      (setq gross-total-cent (floor (* cent 100))))
-    (setq words-gross-total (with-output-to-string (words)
-			      (format-print-cardinal words gross-total-int)
-			      (format words " ~a"
-				      (multiple-value-bind (tens ones)
-					  (truncate gross-total-int 10)
-					(if (and (= tens 0) (= ones 1))
-					    "złoty"
-					    (case ones
-					      ((2 3 4) "złote")
-					      (otherwise "złotych")))))))
-    (setq payment-form
+
+    (setf gross-total (+ 22-gross-total 7-gross-total 3-gross-total zw-net-total))
+    (setf net-total   (+ 22-net-total   7-net-total   3-net-total   zw-net-total))
+    (setf vat-total   (+ 22-vat-total   7-vat-total   3-vat-total))
+
+    ;;; beware of floor (not used below anymore), rounding errors bite
+    (let ((split-gross-total
+	   (split-sequence:split-sequence #\.
+					  (format nil "~$" gross-total))))
+      (setf gross-total-int  (read-from-string (first  split-gross-total)))
+      (setf gross-total-cent (read-from-string (second split-gross-total))))
+
+    (setf words-gross-total
+	  (with-output-to-string (words)
+	    (format-print-cardinal words gross-total-int)
+	    (format words " ~a"
+		    (multiple-value-bind (tens ones)
+			(truncate gross-total-int 10)
+		      (if (and (= tens 0) (= ones 1))
+			  "złoty"
+			  (case ones
+			    ((2 3 4) "złote")
+			    (otherwise "złotych")))))))
+
+    (setf payment-form
 	  (if (<= payment-days 0)
 	      "Płatne gotówką."
 	      (multiple-value-bind (a b c day month year d e f)
@@ -354,6 +370,7 @@ for invoice visualisation and printout."
 		(format nil
 			"Płatne przelewem do dnia: ~d/~d/~d (~d dni)."
 			day month year payment-days))))
+
     ;; now we return all we calculated in a single plist:
     (list :gross-total       (polish-monetize gross-total)
 	  :gross-total-int   gross-total-int
@@ -430,3 +447,11 @@ decimal comma and thousand dot separators."
       (format output "~a"
 	      (emb:execute-emb "template"
 			       :env (append env-plist (calculate-invoice-fields invoice)))))))
+
+;;;
+;;; quick billing based on nicks (and default items) TODO
+;;;
+
+;(defun bill-client (client &optional items)
+;  (add-to-db
+;   (make )))
