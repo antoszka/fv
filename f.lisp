@@ -340,11 +340,16 @@ for invoice visualisation and printout."
     (setf vat-total   (+ 22-vat-total   7-vat-total   3-vat-total))
 
     ;;; beware of floor (not used below anymore), rounding errors bite
-    (let ((split-gross-total
-	   (split-sequence:split-sequence #\.
-					  (format nil "~$" gross-total))))
-      (setf gross-total-int  (read-from-string (first  split-gross-total)))
-      (setf gross-total-cent (read-from-string (second split-gross-total))))
+;    (let ((split-gross-total
+;	   (split-sequence:split-sequence #\.
+;					  (format nil "~$" gross-total))))
+;      (setf gross-total-int  (read-from-string (first  split-gross-total)))
+;      (setf gross-total-cent (read-from-string (second split-gross-total))))
+
+    (multiple-value-bind (int cent)
+	(delimited-substrings (format nil "~$" gross-total) '(#\.))
+      (setf gross-total-int  (read-from-string int))
+      (setf gross-total-cent (read-from-string cent)))
 
     (setf words-gross-total
 	  (with-output-to-string (words)
