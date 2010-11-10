@@ -340,16 +340,11 @@ for invoice visualisation and printout."
     (setf vat-total   (+ 22-vat-total   7-vat-total   3-vat-total))
 
     ;;; beware of floor (not used below anymore), rounding errors bite
-;    (let ((split-gross-total
-;	   (split-sequence:split-sequence #\.
-;					  (format nil "~$" gross-total))))
-;      (setf gross-total-int  (read-from-string (first  split-gross-total)))
-;      (setf gross-total-cent (read-from-string (second split-gross-total))))
-
     (multiple-value-bind (int cent)
-	(delimited-substrings (format nil "~$" gross-total) '(#\.))
+	(delimited-substrings (format nil "~$" gross-total) '(#\.)) ; thx, Erik
       (setf gross-total-int  (read-from-string int))
       (setf gross-total-cent (read-from-string cent)))
+
 
     (setf words-gross-total
 	  (with-output-to-string (words)
@@ -398,7 +393,7 @@ for invoice visualisation and printout."
 	  :3-vat-total       (polish-monetize 3-vat-total)
 	  :3-gross-total     (polish-monetize 3-gross-total)
 	  :zw-net-total      (polish-monetize zw-net-total)
-	  :calculated-items  calculated-items)))
+	  :calculated-items  (reverse calculated-items))))
 
 ;;;
 ;;; Convert a float to a string with 2 decimal places, and a decimal comma
