@@ -39,21 +39,17 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; EXAMPLES:
-;;; (make-invoice :client (select-by-nick :client 'asp) :items (list (select-by-nick :item 'adminowanie-asp)))
-;;; (make-invoice :client (select-by-nick :client 'asp) :items (list (adjust-key (select-by-nick 'adminowanie-asp :item) :count 2)
-;;; 								     (select-by-nick :item 'coś-innego)))
-;;; (add-to-db (↑))
-
-;;;
-;;; clhs appendf (NOT USED)
-;;;
-
-;; (define-modify-macro appendf (&rest args)
-;;  append "Append onto list")
+;;; (make-invoice :client (select-by-nick :client 'asp)
+;;;   :items (list (select-by-nick :item 'adminowanie-asp)))
+;;; (make-invoice :client (select-by-nick :client 'asp)
+;;;   :items (list
+;;;            (adjust-key (select-by-nick :item 'adminowanie-asp) :count 2)
+;;;            (select-by-nick :item 'coś-innego)))
+;;; (add-to-db *)
 
 ;;;
 ;;; Define the program directory (for loading the template and such).
-;;; DO MODIFY this for your own installation.
+;;; *DO* MODIFY this for your own installation.
 ;;;
 
 (defvar *program-directory*
@@ -149,7 +145,7 @@ type (not nil for cash) and payment days."
     (dolist (k (getf *db* :invoice))
       (cond ((and (eql (getf k :month) m)
 		  (eql (getf k :year)  y))
-	     (if (< current-highest (getf k :number))
+	     (if (<    current-highest (getf k :number))
 		 (setf current-highest (getf k :number))
 		 current-highest))))
     (1+ current-highest)))
