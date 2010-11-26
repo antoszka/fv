@@ -393,7 +393,7 @@ for invoice visualisation and printout."
 
 ;;;
 ;;; Convert a float to a string with 2 decimal places, and a decimal comma
-;;; How about using: (format nil "~,,'.,3:D" number)?
+;;; How about using: (format nil "~,,'.,3:D" number)? Or something…
 ;;;
 
 (defun polish-monetize (value)
