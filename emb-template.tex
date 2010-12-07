@@ -1,6 +1,6 @@
 %%% This template was originally exported from LyX
 %%% and modified manually later on.
-%%% It it a part of the f.lisp personal invoicing program
+%%% It it a part of the Common Lisp fv personal invoicing program
 %%% (c) 2010 by Antoni Grzymała
 
 \documentclass[polish]{dinbrief}
@@ -52,11 +52,11 @@
 \cline{1-1} \cline{3-3} 
 \emph{Sprzedawca:} &  & \emph{Nabywca:}\tabularnewline
 \cline{1-1} \cline{3-3} 
-Grzymała Design &  & <% @var buyer-name %>\tabularnewline
-Odyńca 7 m. 9 &  & <% @var buyer-address %>\tabularnewline
-02-606 Warszawa &  & <% @var buyer-postcode %> <% @var buyer-city %>\tabularnewline
-NIP: 5211743640 &  & NIP: <% @var buyer-nip %>\tabularnewline
-Konto: 30 1140 2004 0000 3802 1456 7893 &  & \tabularnewline
+<% @var seller-name %> &  & <% @var buyer-name %>\tabularnewline
+<% @var seller-address %> &  & <% @var buyer-address %>\tabularnewline
+<% @var seller-postcode %> <% @var seller-city %> &  & <% @var buyer-postcode %> <% @var buyer-city %>\tabularnewline
+NIP: <% @var seller-nip %> &  & NIP: <% @var buyer-nip %>\tabularnewline
+Konto: <% @var seller-account %> &  & \tabularnewline
 \cline{1-1} \cline{3-3} 
 \end{tabular}
 \par\end{flushleft}
