@@ -66,7 +66,7 @@
 
 (defvar *db* (list :item () :client () :invoice ()))
 (defvar *db-file* (merge-pathnames (user-homedir-pathname) #P".fv.db"))
-(defvar *rc-file* (merge-pathnames (user-homedir-pathname) #P".fvrc"))
+(defvar *rc-file* (merge-pathnames (user-homedir-pathname) #P".fvrc.lisp"))
 (load *rc-file*)
 
 ;;; and some system constants:
