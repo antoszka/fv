@@ -1,6 +1,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
-;;; f.lisp – (c) 2010 Antoni Grzymała
+;;; fv.lisp – (c) 2010 Antoni Grzymała
 ;;;
 ;;; This is my personal invoicing program, might only be useful in its
 ;;; current form in the Polish VAT-invoice area.
@@ -66,6 +66,8 @@
 
 (defvar *db* (list :item () :client () :invoice ()))
 (defvar *db-file* (merge-pathnames (user-homedir-pathname) #P".fv.db"))
+(defvar *rc-file* (merge-pathnames (user-homedir-pathname) #P".fvrc"))
+(load *rc-file*)
 
 ;;; and some system constants:
 
@@ -422,6 +424,11 @@ decimal comma and thousand dot separators."
 					   (getf invoice :date)
 					   (getf invoice :month)
 					   (getf invoice :year))
+		:seller-name       (getf *company-data* :name)
+		:seller-address    (getf *company-data* :address)
+		:seller-postcode   (getf *company-data* :postcode)
+		:seller-nip        (getf *company-data* :nip)
+		:seller-account    (getf *company-data* :account)
 		:buyer-name        (getf (getf invoice :client) :name)
 		:buyer-address     (getf (getf invoice :client) :address)
 		:buyer-postcode    (getf (getf invoice :client) :postcode)
