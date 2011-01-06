@@ -83,7 +83,7 @@
 ;;; (item, client, invoice):
 ;;;
 
-(defun make-item (&key title (vat 22) (count 1) net nick)
+(defun make-item (&key title (vat 23) (count 1) net nick)
   "Create a single item inventory entry with a title, VAT, net price and nickname."
   (list
    :type  'item ; ← this tells us this is an item *db* entry
@@ -286,15 +286,15 @@ for invoice visualisation and printout."
 	 (invoice-month     (getf invoice :month))
 	 (invoice-year      (getf invoice :year))
 	 (payment-form      "")
-	 (22-net-total      0)
-	 (22-vat-total      0)
-	 (22-gross-total    0)
-	 (7-net-total       0)
-	 (7-vat-total       0)
-	 (7-gross-total     0)
-	 (3-net-total       0)
-	 (3-vat-total       0)
-	 (3-gross-total     0)
+	 (23-net-total      0)
+	 (23-vat-total      0)
+	 (23-gross-total    0)
+	 (8-net-total       0)
+	 (8-vat-total       0)
+	 (8-gross-total     0)
+	 (5-net-total       0)
+	 (5-vat-total       0)
+	 (5-gross-total     0)
 	 (zw-net-total      0)
 	 (item-position     1)
 	 (calculated-items  nil))
@@ -307,18 +307,18 @@ for invoice visualisation and printout."
 				    0	      ;; VAT rate is
 				    item-vat) ;; effectively 0%
 				100))) ;; TODO – check if interger here OK
-	(cond ((equal item-vat 22)  
-	       (incf 22-net-total   (* item-count item-net))
-	       (incf 22-vat-total   (* item-count item-net 0.22))
-	       (incf 22-gross-total (* item-count item-net 1.22)))
-	      ((equal item-vat 7)   
-	       (incf 7-net-total    (* item-count item-net))
-	       (incf 7-vat-total    (* item-count item-net 0.07))
-	       (incf 7-gross-total  (* item-count item-net 1.07)))
-	      ((equal item-vat 3)
-	       (incf 3-net-total    (* item-count item-net))
-	       (incf 3-vat-total    (* item-count item-net 0.03))
-	       (incf 3-gross-total  (* item-count item-net 1.03)))
+	(cond ((equal item-vat 23)  
+	       (incf 23-net-total   (* item-count item-net))
+	       (incf 23-vat-total   (* item-count item-net 0.23))
+	       (incf 23-gross-total (* item-count item-net 1.23)))
+	      ((equal item-vat 8)   
+	       (incf 8-net-total    (* item-count item-net))
+	       (incf 8-vat-total    (* item-count item-net 0.08))
+	       (incf 8-gross-total  (* item-count item-net 1.08)))
+	      ((equal item-vat 5)
+	       (incf 5-net-total    (* item-count item-net))
+	       (incf 5-vat-total    (* item-count item-net 0.05))
+	       (incf 5-gross-total  (* item-count item-net 1.05)))
 	      ((equal item-vat "zw") 
 	       (incf zw-net-total   (* item-count item-net))))
 	(push (list item-position
@@ -333,9 +333,9 @@ for invoice visualisation and printout."
 	      calculated-items)
 	(incf item-position)))
 
-    (setf gross-total (+ 22-gross-total 7-gross-total 3-gross-total zw-net-total))
-    (setf net-total   (+ 22-net-total   7-net-total   3-net-total   zw-net-total))
-    (setf vat-total   (+ 22-vat-total   7-vat-total   3-vat-total))
+    (setf gross-total (+ 23-gross-total 8-gross-total 5-gross-total zw-net-total))
+    (setf net-total   (+ 23-net-total   8-net-total   5-net-total   zw-net-total))
+    (setf vat-total   (+ 23-vat-total   8-vat-total   5-vat-total))
 
     ;;; beware of floor (not used below anymore), rounding errors bite
     (multiple-value-bind (int cent)
@@ -381,15 +381,15 @@ for invoice visualisation and printout."
 	  :invoice-month     invoice-month
 	  :invoice-year      invoice-year
 	  :payment-form      payment-form
-	  :22-net-total      (polish-monetize 22-net-total)
-	  :22-vat-total      (polish-monetize 22-vat-total)
-	  :22-gross-total    (polish-monetize 22-gross-total)
-	  :7-net-total       (polish-monetize 7-net-total)
-	  :7-vat-total       (polish-monetize 7-vat-total)
-	  :7-gross-total     (polish-monetize 7-gross-total)
-	  :3-net-total       (polish-monetize 3-net-total)
-	  :3-vat-total       (polish-monetize 3-vat-total)
-	  :3-gross-total     (polish-monetize 3-gross-total)
+	  :23-net-total      (polish-monetize 23-net-total)
+	  :23-vat-total      (polish-monetize 23-vat-total)
+	  :23-gross-total    (polish-monetize 23-gross-total)
+	  :8-net-total       (polish-monetize 8-net-total)
+	  :8-vat-total       (polish-monetize 8-vat-total)
+	  :8-gross-total     (polish-monetize 8-gross-total)
+	  :5-net-total       (polish-monetize 5-net-total)
+	  :5-vat-total       (polish-monetize 5-vat-total)
+	  :5-gross-total     (polish-monetize 5-gross-total)
 	  :zw-net-total      (polish-monetize zw-net-total)
 	  :calculated-items  (reverse calculated-items))))
 
