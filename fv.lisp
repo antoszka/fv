@@ -235,7 +235,8 @@ type (not nil for cash) and payment days."
 		 (not id))
 	 (error "~S already exists as an invoice id." id))
        (push entry (getf *db* :invoice)))
-      (t nil))))
+      (t nil))
+    entry)) ; return the entry itself if added successfully (instead of *db*)
 
 ;;;
 ;;; dump stuff function
@@ -454,9 +455,21 @@ decimal comma and thousand dot separators."
 			       :env (append env-plist (calculate-invoice-fields invoice)))))))
 
 ;;;
-;;; quick billing based on nicks (and default items) TODO
+;;; quick billing based on nicks (and default items)
 ;;;
 
-;(defun bill-client (client &optional items)
-;  (add-to-db
-;   (make )))
+(defmacro bill (client &rest items)
+  `(make-invoice 
+    :client ',(select-by-nick :client client)
+    :items  '(,(let ((spliced-items (car items))) 
+		    (cond ((and
+			    (listp spliced-items)
+			    (not (null spliced-items)))
+			   spliced-items)
+			  ((and
+			    (atom spliced-items)
+			    (not (null spliced-items)))
+			   (select-by-nick :item spliced-items))
+			  (t (select-by-nick :item
+					     (getf (select-by-nick :client client)
+						   :default-item))))))))
