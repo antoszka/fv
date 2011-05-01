@@ -1,10 +1,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
-;;; fv.lisp – (c) 2010 Antoni Grzymała
+;;; fv.lisp – (c) 2010, 2011 Antoni Grzymała
 ;;;
 ;;; This is my personal invoicing program, might only be useful in its
 ;;; current form in the Polish VAT-invoice area.
 ;;;
+
+;;; (in-package #:fv)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -25,12 +27,12 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
-;;; TODO:
+;;; TODO (in order of priority):
+;;; + corrective invoices
 ;;; * removing entries from database
 ;;; * selecting invoices by certain criteria
 ;;; * interactive mode (text UI) with browsing clients/items
 ;;; * command-line switches for scripting
-;;; * corrective invoices
 ;;;
 ;;; --- later:
 ;;; * curses/tk/clim GUI
@@ -65,7 +67,7 @@
 ;;; initialize the database and set default database filename:
 
 (defvar *db* (list :item () :client () :invoice ()))
-(defvar *db-file* (merge-pathnames (user-homedir-pathname) #P".fv.db"))
+(defvar *db-file* (merge-pathnames (user-homedir-pathname) #P".fvdb.lisp"))
 (defvar *rc-file* (merge-pathnames (user-homedir-pathname) #P".fvrc.lisp"))
 (load *rc-file*)
 
@@ -207,7 +209,7 @@ type (not nil for cash) and payment days."
       nil t))
 
 ;;;
-;;; add something to our database tree:
+;;; add something to our database (returning the added item):
 ;;;
 
 (defun add-to-db (entry)
@@ -217,11 +219,13 @@ type (not nil for cash) and payment days."
 	(type   (getf entry :type))
 	(id     (getf entry :id)))
     (cond
+      ;; add an item
       ((equal type 'item)
        (when (or (select-by-nick nick :item)
 		 (not nick))
 	 (error "~S already exists as an item nick or nick empty." nick))
-       (push entry (getf *db* :item)))
+       (push entry (getf *db* :item)) entry)
+      ;; add a client and return it
       ((equal type 'client)
        (when (or (select-by-nick nick :client)
 		 (not nick))
@@ -229,12 +233,13 @@ type (not nil for cash) and payment days."
        (when (or (correct-nip-p nip)
 		 (not nip))
 	 (error "~S is not a correct NIP number." nip))
-       (push entry (getf *db* :client)))
+       (push entry (getf *db* :client)) entry)
+      ;; add an invoice and return it
       ((equal type 'invoice)
        (when (or (select-invoice-by-id id)
 		 (not id))
 	 (error "~S already exists as an invoice id." id))
-       (push entry (getf *db* :invoice)))
+       (push entry (getf *db* :invoice)) entry)
       (t nil))
     entry)) ; return the entry itself if added successfully (instead of *db*)
 
@@ -264,10 +269,11 @@ type (not nil for cash) and payment days."
 
 (defun read-db (&optional (pathname *db-file*))
   "Loads the invoice/client/item database from a file"
-  (with-open-file (input pathname
-			 :direction :input)
-    (with-standard-io-syntax
-      (setf *db* (read input)))))
+  (let ((*read-eval* nil))
+    (with-open-file (input pathname
+			   :direction :input)
+      (with-standard-io-syntax
+	(setf *db* (read input))))) '*db*)
 
 ;;;
 ;;; calculate all necessary invoice fields
@@ -439,37 +445,52 @@ decimal comma and thousand dot separators."
 		:item-list         (getf invoice :items)))
 	 (output-filename (merge-pathnames
 			   (user-homedir-pathname)
-			   (format nil "fv-~d-~2,'0d-~2,'0d-~a.tex"
+			   (format nil
+				   (if (getf invoice :corrective) 
+				       "fk-~d-~2,'0d-~2,'0d-~a.tex"
+				       "fv-~d-~2,'0d-~2,'0d-~a.tex")
 				   (getf invoice :year)
 				   (getf invoice :month)
 				   (getf invoice :number)
 				   (getf (getf invoice :client) :nick)))))
     (emb:register-emb "template" (merge-pathnames *program-directory*
-						  (make-pathname :name "emb-template"
+						  (make-pathname :name
+								 (if (getf invoice :corrective)
+								     "fk-emb-template"
+								     "fv-emb-template")
 								 :type "tex")))
-    (with-open-file (output (merge-pathnames (user-homedir-pathname) output-filename)
+    (with-open-file (output output-filename
 			    :direction :output
 			    :if-exists :supersede)
       (format output "~a"
 	      (emb:execute-emb "template"
-			       :env (append env-plist (calculate-invoice-fields invoice)))))))
+			       :env (append env-plist (calculate-invoice-fields invoice)))))
+
+    #+(and sbcl unix) (progn
+			(princ "Running pdflatex... ")
+			(let ((exit-code (sb-ext:run-program "/usr/bin/pdflatex" (list (namestring output-filename)))))
+			  (when (= (sb-ext:process-exit-code exit-code) 0)
+			    (princ "Success!")
+			    (terpri)
+			    (dolist (extension (list "aux" "log" "tex"))
+			      (delete-file (make-pathname :type extension :defaults output-filename)))))))
 
 ;;;
 ;;; quick billing based on nicks (and default items)
 ;;;
 
-(defmacro bill (client &rest items)
-  `(make-invoice 
-    :client ',(select-by-nick :client client)
-    :items  '(,(let ((spliced-items (car items))) 
-		    (cond ((and
-			    (listp spliced-items)
-			    (not (null spliced-items)))
-			   spliced-items)
-			  ((and
-			    (atom spliced-items)
-			    (not (null spliced-items)))
-			   (select-by-nick :item spliced-items))
-			  (t (select-by-nick :item
-					     (getf (select-by-nick :client client)
-						   :default-item))))))))
+  (defun bill (client &rest items)
+    (make-invoice
+     :client (select-by-nick :client client)
+     :items  (list (let ((spliced-items (car items)))
+		     (cond ((and
+			     (listp spliced-items)
+			     (not (null spliced-items)))
+			    spliced-items)
+			   ((and
+			     (atom spliced-items)
+			     (not (null spliced-items)))
+			    (select-by-nick :item spliced-items))
+			   (t (select-by-nick :item
+					      (getf (select-by-nick :client client)
+						    :default-item)))))))))
