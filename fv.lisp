@@ -135,7 +135,7 @@ type (not nil for cash) and payment days."
      :date         invoice-date
      :number       invoice-number
      :id           invoice-id
-     :payment-days payment-days)))	; ← 0 means we want cash
+     :payment-days payment-days))) ; ← 0 means we want cash
 
 ;;;
 ;;; return nearest possible invoice number (for a given month/year)
@@ -473,24 +473,24 @@ decimal comma and thousand dot separators."
 			    (princ "Success!")
 			    (terpri)
 			    (dolist (extension (list "aux" "log" "tex"))
-			      (delete-file (make-pathname :type extension :defaults output-filename)))))))
+			      (delete-file (make-pathname :type extension :defaults output-filename))))))))
 
 ;;;
 ;;; quick billing based on nicks (and default items)
 ;;;
 
-  (defun bill (client &rest items)
-    (make-invoice
-     :client (select-by-nick :client client)
-     :items  (list (let ((spliced-items (car items)))
-		     (cond ((and
-			     (listp spliced-items)
-			     (not (null spliced-items)))
-			    spliced-items)
-			   ((and
-			     (atom spliced-items)
-			     (not (null spliced-items)))
-			    (select-by-nick :item spliced-items))
-			   (t (select-by-nick :item
-					      (getf (select-by-nick :client client)
-						    :default-item)))))))))
+(defun bill (client &rest items)
+  (make-invoice
+   :client (select-by-nick :client client)
+   :items  (list (let ((spliced-items (car items)))
+		   (cond ((and
+			   (listp spliced-items)
+			   (not (null spliced-items)))
+			  spliced-items)
+			 ((and
+			   (atom spliced-items)
+			   (not (null spliced-items)))
+			  (select-by-nick :item spliced-items))
+			 (t (select-by-nick :item
+					    (getf (select-by-nick :client client)
+						  :default-item))))))))
