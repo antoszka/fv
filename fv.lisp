@@ -423,7 +423,7 @@ decimal comma and thousand dot separators."
 ;;; printing an invoice
 ;;;
 
-(defun print-invoice (invoice)
+(defun print-invoice (invoice &optional (mail nil))
   "Creates a tex printout file of a given invoice by means of executing emb code in a tex template."
   (let* ((env-plist
 	  (list :invoice-id        (getf invoice :id)
@@ -468,12 +468,31 @@ decimal comma and thousand dot separators."
 
     #+(and sbcl unix) (progn
 			(princ "Running pdflatex... ")
-			(let ((exit-code (sb-ext:run-program "/usr/bin/pdflatex" (list (namestring output-filename)))))
+			(let ((exit-code (sb-ext:run-program "/usr/bin/pdflatex"
+							     (list (namestring output-filename)))))
 			  (when (= (sb-ext:process-exit-code exit-code) 0)
 			    (princ "Success!")
 			    (terpri)
 			    (dolist (extension (list "aux" "log" "tex"))
-			      (delete-file (make-pathname :type extension :defaults output-filename))))))))
+			      (delete-file (make-pathname :type extension :defaults output-filename)))
+			    (when (and
+				   (not  (null mail))
+				   (getf (getf invoice :client) :email)) ; and email address available
+			      (sb-ext:run-program "/usr/bin/mailx"
+						  (list "-a" (namestring (merge-pathnames
+									  *program-directory*
+									  (make-pathname :name "email-template"
+											 :type "txt"))) ; message body
+							"-a" (namestring (make-pathname :type "pdf"
+											:defaults output-filename)) ; PDF attachment
+							"-r" (format nil "~a <~a>"
+								     (getf *company-data* :name)
+								     (getf *company-data* :email))
+							"-s" (format nil "Faktura od ~a za ~a/~a"
+								     (getf *company-data* :name)
+								     (getf invoice :month)
+								     (getf invoice :year))
+							"antoni@localhost"))))))))
 
 ;;;
 ;;; quick billing based on nicks (and default items)
