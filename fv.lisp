@@ -492,7 +492,7 @@ decimal comma and thousand dot separators."
 								     (getf *company-data* :name)
 								     (getf invoice :month)
 								     (getf invoice :year))
-							"antoni@localhost"))))))))
+							(getf invoice :email)))))))))
 
 ;;;
 ;;; quick billing based on nicks (and default items)
