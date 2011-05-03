@@ -1,0 +1,131 @@
+%%% This template was originally exported from LyX
+%%% and modified manually later on.
+%%% It it a part of the Common Lisp fv personal invoicing program
+%%% (c) 2010 by Antoni Grzymała
+
+\documentclass[polish]{dinbrief}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{array}
+
+\makeatletter
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LyX specific LaTeX commands.
+\newcommand{\lyxline}[1][1pt]{%
+  \par\noindent%
+  \rule[.5ex]{\linewidth}{#1}\par}
+%% Because html converters don't know tabularnewline
+\providecommand{\tabularnewline}{\\}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Textclass specific LaTeX commands.
+\newcommand{\areacode}{}
+
+\makeatother
+
+\usepackage{babel}
+
+\begin{document}
+\begin{flushleft}
+\textbf{\Large Faktura korygująca VAT}
+\par\end{flushleft}{\Large \par}
+
+\begin{flushleft}
+\emph{Numer:} <%            @var corr-invoice-id %>\\
+\emph{Do faktury:} <%       @var invoice-id %>\\
+\emph{Data wystawienia:} <% @var corr-invoice-date-full %>\\
+\emph{Data korekty:} <%     @var corr-invoice-date-full %>
+\par\end{flushleft}
+
+\begin{flushleft}
+\medskip{}
+
+\par\end{flushleft}
+
+\lyxline{\normalsize}
+
+%%%
+%%% This is the buyer-seller section.
+%%%
+
+\begin{flushleft}
+\begin{tabular}{|l|l|l|}
+\cline{1-1} \cline{3-3} 
+\emph{Sprzedawca:} &  & \emph{Nabywca:}\tabularnewline
+\cline{1-1} \cline{3-3} 
+<% @var seller-name %> &  & <% @var buyer-name %>\tabularnewline
+<% @var seller-address %> &  & <% @var buyer-address %>\tabularnewline
+<% @var seller-postcode %> <% @var seller-city %> &  & <% @var buyer-postcode %> <% @var buyer-city %>\tabularnewline
+NIP: <% @var seller-nip %> &  & NIP: <% @var buyer-nip %>\tabularnewline
+Konto: <% @var seller-account %> &  & \tabularnewline
+\cline{1-1} \cline{3-3} 
+\end{tabular}
+\par\end{flushleft}
+
+\medskip{}
+
+\lyxline{\normalsize}
+\begin{flushright}
+\medskip{}
+
+%%%
+%%% This is OUT the item list section
+%%%
+
+\begin{tabular}{r>{\raggedleft}p{0.2\paperwidth}rr|r|r|r|r|}
+lp. & nazwa & cena netto & \multicolumn{1}{r}{ilość} & \multicolumn{1}{r}{wartość netto} & \multicolumn{1}{r}{VAT} & \multicolumn{1}{r}{kwota VAT} & \multicolumn{1}{r}{wartość brutto}\tabularnewline
+\hline
+
+%%% This has to be looped across the removed item list:
+<% (dolist (item-calculations (getf env :out-calculated-items))
+	   (format t
+		   "~{\\multicolumn\{1\}\{|r|\}\{~a\} & \\multicolumn\{1\}\{>\{\\raggedleft\}p\{0.2\\paperwidth\}|\}\{~a\} & \\multicolumn\{1\}\{r|\}\{~a zł\} & ~a & ~a zł & ~a\\ & ~a zł & ~a zł\\tabularnewline\\hline~}~%%~%"
+		   item-calculations)) %>
+\end {tabular}
+\medskip {}
+
+%%%
+%%% This is OUT the item list section
+%%%
+
+\begin{tabular}{r>{\raggedleft}p{0.2\paperwidth}rr|r|r|r|r|}
+lp. & nazwa & cena netto & \multicolumn{1}{r}{ilość} & \multicolumn{1}{r}{wartość netto} & \multicolumn{1}{r}{VAT} & \multicolumn{1}{r}{kwota VAT} & \multicolumn{1}{r}{wartość brutto}\tabularnewline
+\hline
+
+%%% This has to be looped across the inserted item list:
+<% (dolist (item-calculations (getf env :in-calculated-items))
+	   (format t
+		   "~{\\multicolumn\{1\}\{|r|\}\{~a\} & \\multicolumn\{1\}\{>\{\\raggedleft\}p\{0.2\\paperwidth\}|\}\{~a\} & \\multicolumn\{1\}\{r|\}\{~a zł\} & ~a & ~a zł & ~a\\ & ~a zł & ~a zł\\tabularnewline\\hline~}~%%~%"
+		   item-calculations)) %>
+\end {tabular}
+\medskip {}
+
+%%% This is the summary section:
+
+\begin{tabular}{r>{\raggedleft}p{0.2\paperwidth}rr|r|r|r|r|}
+ &  &  & Łącznie: & <% @var    corr-net-total %> zł &    X & <% @var    corr-vat-total %> zł & <% @var    corr-gross-total %> zł\tabularnewline
+\cline{5-8} 
+ &  &  &  &         <% @var corr-23-net-total %> zł & 23\% & <% @var corr-23-vat-total %> zł & <% @var corr-23-gross-total %> zł\tabularnewline
+\cline{5-8} 
+ &  &  &  &         <% @var  corr-8-net-total %> zł &  8\% & <% @var  corr-8-vat-total %> zł & <% @var  corr-8-gross-total %> zł\tabularnewline
+\cline{5-8} 
+ &  &  &  &         <% @var  corr-5-net-total %> zł &  5\% & <% @var  corr-5-vat-total %> zł & <% @var  corr-5-gross-total %> zł\tabularnewline
+\cline{5-8} 
+ &  &  &  &         <% @var corr-zw-net-total %> zł &  zw. &                         0,00 zł & <% @var   corr-zw-net-total %> zł\tabularnewline
+\cline{5-8} 
+\end{tabular}
+\par\end{flushright}
+
+\medskip{}
+
+%%%
+%%% This is the footer with the payment spelled out in words and payment type/date
+%%%
+
+
+\begin{flushright}
+Do zapłaty: <% @var corr-gross-total %> zł.\\
+Słownie:    <% @var corr-words-gross-total %>, <% @var corr-gross-total-cent %>/100.\\
+            <% @var corr-payment-form %> %%% Forma płatności.
+\par\end{flushright}
+\end{document}
