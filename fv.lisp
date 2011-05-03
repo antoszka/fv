@@ -492,6 +492,7 @@ decimal comma and thousand dot separators."
 								     (getf *company-data* :name)
 								     (getf invoice :month)
 								     (getf invoice :year))
+							"-b" (getf *company-data* :email) ; bcc copy to self
 							(getf invoice :email)))))))))
 
 ;;;
