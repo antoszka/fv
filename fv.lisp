@@ -423,7 +423,7 @@ decimal comma and thousand dot separators."
 ;;; printing an invoice
 ;;;
 
-(defun print-invoice (invoice &optional (mail nil))
+(defun print-invoice (invoice &key mail)
   "Creates a tex printout file of a given invoice by means of executing emb code in a tex template."
   (let* ((env-plist
 	  (list :invoice-id        (getf invoice :id)
@@ -467,7 +467,7 @@ decimal comma and thousand dot separators."
 			       :env (append env-plist (calculate-invoice-fields invoice)))))
 
     #+(and sbcl unix) (progn
-			(princ "Running pdflatex... ")
+			(princ "DEBUG: Running pdflatex... ")
 			(let ((exit-code (sb-ext:run-program "/usr/bin/pdflatex"
 							     (list (namestring output-filename)))))
 			  (when (= (sb-ext:process-exit-code exit-code) 0)
@@ -514,3 +514,28 @@ decimal comma and thousand dot separators."
 			 (t (select-by-nick :item
 					    (getf (select-by-nick :client client)
 						  :default-item))))))))
+
+;;
+;; monthly billing for clients billed monthly
+;;
+
+(defun last-day-of-month-p ()
+  "Helper function to check whether we have a billing date (last day of month)."
+  (let* ((last-days     #(31 28 31 30 31 30 31 31 30 31 30 31))
+	 (universal-time (get-universal-time))
+	 (date           (getdate 'date  universal-time))
+	 (month          (getdate 'month universal-time))
+	 (year           (getdate 'year  universal-time)))
+    (or (and (= date 29) (= month 2))
+	(= date (aref last-days (1- month))))))
+
+(defun bill-montly (&optional force)
+  "Automatically bill clients that receive regular montly billing (on last day of month)."
+  ;; reads and writes the db (destructively)
+  (when (or (last-day-of-month-p) force)
+    (read-db)
+    (dolist (client *monthly-billed-clients*) ; list read from rc-file
+      (let ((invoice (bill client)))
+	(add-to-db invoice)
+	(print-invoice invoice :mail t)))
+    (write-db)))
