@@ -155,11 +155,12 @@ type (not nil for cash) and payment days."
     (1+ current-highest)))
 
 ;;;
-;;; return some interesting date elements
+;;; return some of today's date elements that are of interest to us
 ;;;
 
 (defun getdate (what-we-want universal-time)
   "Return a decoded date element."
+  ;; TODO: UTC → localtime
   (nth-value
    (position what-we-want
 	     '(second minute hour date month year day-of-week dst-p tz))
@@ -371,6 +372,7 @@ for invoice visualisation and printout."
 		   (+ (* payment-days 86400)
 		      (encode-universal-time
 		       0 0 0 invoice-date invoice-month invoice-year)))
+		;; TODO: UTC → localtime
 		(declare (ignore a b c d e f))
 		(format nil
 			"Płatne przelewem do dnia: ~d/~d/~d (~d dni)."
@@ -420,11 +422,12 @@ decimal comma and thousand dot separators."
 			       (< count reversed-length)) collect #\.)))))
 
 ;;;
-;;; printing an invoice
+;;; printing an invoice (and optionally mailing it)
 ;;;
 
 (defun print-invoice (invoice &key mail)
-  "Creates a tex printout file of a given invoice by means of executing emb code in a tex template."
+  "Creates a tex printout file of a given invoice by means of executing emb code in a tex template.
+If told to, mails the invoice to the email address defined for the client."
   (let* ((env-plist
 	  (list :invoice-id        (getf invoice :id)
 		:invoice-date-full (format nil "~a/~a/~a"
@@ -466,34 +469,35 @@ decimal comma and thousand dot separators."
 	      (emb:execute-emb "template"
 			       :env (append env-plist (calculate-invoice-fields invoice)))))
 
-    #+(and sbcl unix) (progn
-			(princ "DEBUG: Running pdflatex... ")
-			(let ((exit-code (sb-ext:run-program "/usr/bin/pdflatex"
-							     (list (namestring output-filename)))))
-			  (when (= (sb-ext:process-exit-code exit-code) 0)
-			    (princ "Success!")
-			    (terpri)
-			    (dolist (extension (list "aux" "log" "tex"))
-			      (delete-file (make-pathname :type extension :defaults output-filename)))
-			    (when (and
-				   (not  (null mail))
-				   (getf (getf invoice :client) :email)) ; and email address available
-			      (sb-ext:run-program "/usr/bin/mailx"
-						  (list "-a" (namestring (merge-pathnames
-									  *program-directory*
-									  (make-pathname :name "email-template"
-											 :type "txt"))) ; message body
-							"-a" (namestring (make-pathname :type "pdf"
-											:defaults output-filename)) ; PDF attachment
-							"-r" (format nil "~a <~a>"
-								     (getf *company-data* :name)
-								     (getf *company-data* :email))
-							"-s" (format nil "Faktura od ~a za ~a/~a"
-								     (getf *company-data* :name)
-								     (getf invoice :month)
-								     (getf invoice :year))
-							"-b" (getf *company-data* :email) ; bcc copy to self
-							(getf invoice :email)))))))))
+    #+(and sbcl unix)
+    (progn
+      (princ "DEBUG: Running pdflatex... ")
+      (let ((exit-code (sb-ext:run-program "/usr/bin/pdflatex"
+					   (list (namestring output-filename)))))
+	(when (= (sb-ext:process-exit-code exit-code) 0)
+	  (princ "Success!")
+	  (terpri)
+	  (dolist (extension (list "aux" "log" "tex"))
+	    (delete-file (make-pathname :type extension :defaults output-filename)))
+	  (when (and
+		 (not  (null mail))
+		 (getf (getf invoice :client) :email)) ; and email address available
+	    (sb-ext:run-program "/usr/bin/mailx"
+				(list "-a" (namestring (merge-pathnames
+							*program-directory*
+							(make-pathname :name "email-template"
+								       :type "txt"))) ; message body
+				      "-a" (namestring (make-pathname :type "pdf"
+								      :defaults output-filename)) ; PDF attachment
+				      "-r" (format nil "~a <~a>"
+						   (getf *company-data* :name)
+						   (getf *company-data* :email))
+				      "-s" (format nil "Faktura od ~a za ~a/~a"
+						   (getf *company-data* :name)
+						   (getf invoice :month)
+						   (getf invoice :year))
+				      "-b" (getf *company-data* :email) ; bcc copy to self
+				      (getf (getf invoice :client) :email)))))))))
 
 ;;;
 ;;; quick billing based on nicks (and default items)
@@ -521,6 +525,7 @@ decimal comma and thousand dot separators."
 
 (defun last-day-of-month-p ()
   "Helper function to check whether we have a billing date (last day of month)."
+  ;; TODO: UTC → localtime
   (let* ((last-days     #(31 28 31 30 31 30 31 31 30 31 30 31))
 	 (universal-time (get-universal-time))
 	 (date           (getdate 'date  universal-time))
