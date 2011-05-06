@@ -67,9 +67,10 @@
 ;;; initialize the database and set default database filename:
 
 (defvar *db* (list :item () :client () :invoice ()))
-(defvar *db-file* (merge-pathnames (user-homedir-pathname) #P".fvdb.lisp"))
-(defvar *rc-file* (merge-pathnames (user-homedir-pathname) #P".fvrc.lisp"))
-(load *rc-file*)
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defvar *db-file* (merge-pathnames (user-homedir-pathname) #P".fvdb.lisp"))
+  (defvar *rc-file* (merge-pathnames (user-homedir-pathname) #P".fvrc.lisp"))
+  (load *rc-file*))
 
 ;;; and some system constants:
 
