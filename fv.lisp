@@ -535,8 +535,8 @@ If told to, mails the invoice to the email address defined for the client."
     (or (and (= date 29) (= month 2))
 	(= date (aref last-days (1- month))))))
 
-(defun bill-montly (&optional force)
-  "Automatically bill clients that receive regular montly billing (on last day of month)."
+(defun bill-monthly (&optional force)
+  "Automatically bill clients that receive regular monthly billing (on last day of month)."
   ;; reads and writes the db (destructively)
   (when (or (last-day-of-month-p) force)
     (read-db)
