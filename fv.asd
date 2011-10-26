@@ -1,11 +1,13 @@
-;; -*- Mode:Common-lisp -*- fv.ast
+;;;; fv.asd
 
-(defsystem fv
+(asdf:defsystem #:fv
   :version "0.1"
   :description "VAT invoicing program for the Polish tax system."
-  :depends-on (cl-emb)
   :serial t
-  :components ((:file "fv")
-	       (:file "menu")
-	       (:file "polish")
-	       (:file "naggum")))
+  :depends-on (#:cl-emb
+               #:local-time)
+  :components ((:file "package")
+               (:file "fv")
+               (:file "menu")
+               (:file "naggum")))
+

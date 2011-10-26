@@ -1,15 +1,14 @@
-;; -*- Mode:common-lisp -*- package.lisp
+;;;; package.lisp
 
-(in-package "common-lisp-user")
+(defpackage #:fv
+  (:use #:cl)
+  (:export #:add-to-db
+	   #:make-client
+	   #:make-item
+           #:voice
+	   #:select-by-nick
+	   #:select-invoice-by-id
+           #:write-db
+	   #:read-db
+	   #:print-invoice))
 
-(defpackage "fv"
-  (:use "cl" "cl-emb")
-  (:EXPORT "add-to-db"
-	   "make-client"
-	   "make-item"
-           "make-invoice"
-	   "select-by-nick"
-	   "select-invoice-by-id"
-           "write-db"
-	   "read-db"
-	   "print-invoice"))

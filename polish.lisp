@@ -7,6 +7,10 @@
 ;;; Gerd Moellmann. Current modifications are mostly done by Adam
 ;;; Michalik/Dodek.
 
+;;
+(in-package #:fv)
+;;
+
 (defparameter *cardinal-ones*
   #(nil "jeden" "dwa" "trzy" "cztery" "pięć" "sześć" "siedem" "osiem" "dziewięć"))
 

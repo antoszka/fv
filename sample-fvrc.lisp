@@ -1,3 +1,7 @@
+;;
+(in-package #:fv)
+;;
+
 (defparameter *company-data* (list
 			      :name "Nazwa firmy"
 			      :address "Ulica, nr"

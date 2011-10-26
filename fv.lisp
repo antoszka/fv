@@ -6,7 +6,7 @@
 ;;; current form in the Polish VAT-invoice area.
 ;;;
 
-;;; (in-package #:fv)
+(in-package #:fv)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
