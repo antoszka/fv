@@ -7,7 +7,6 @@
   :depends-on (#:cl-emb
                #:local-time)
   :components ((:file "package")
-               (:file "fv")
+               (:file "naggum")
                (:file "menu")
-               (:file "naggum")))
-
+               (:file "fv")))

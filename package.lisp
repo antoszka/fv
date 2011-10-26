@@ -3,12 +3,12 @@
 (defpackage #:fv
   (:use #:cl)
   (:export #:add-to-db
-	   #:make-client
-	   #:make-item
+           #:make-client
+           #:make-item
            #:voice
-	   #:select-by-nick
-	   #:select-invoice-by-id
+           #:select-by-nick
+           #:select-invoice-by-id
            #:write-db
-	   #:read-db
-	   #:print-invoice))
+           #:read-db
+           #:print-invoice))
 
