@@ -8,5 +8,6 @@
                #:local-time)
   :components ((:file "package")
                (:file "naggum")
+               (:file "polish")
                (:file "menu")
                (:file "fv")))

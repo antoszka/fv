@@ -275,7 +275,9 @@ type (not nil for cash) and payment days."
     (with-open-file (input pathname
                            :direction :input)
       (with-standard-io-syntax
-        (setf *db* (read input))))) '*db*)
+        (let ((*package* (find-package :fv)))
+          (setf *db* (read input))))))
+  '*db*)
 
 ;;;
 ;;; calculate all necessary invoice fields
