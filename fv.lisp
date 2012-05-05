@@ -424,16 +424,23 @@ for invoice visualisation and printout."
 ;                               (> count 5)
 ;                               (< count reversed-length)) collect #\.)))))
 
+;(defun polish-monetize (value)
+;  "Convert a float to a properly rounded string (to cents) with a
+;decimal comma and thousand dot separators."
+;  (let* ((decimal-digits (format nil "~$" value))
+;         (dot (position #\. decimal-digits)))
+;    (format nil "~,,'.:d,~a"
+;            (truncate value)
+;            (subseq decimal-digits (1+ dot)))))
+
 (defun polish-monetize (value)
   "Convert a float to a properly rounded string (to cents) with a
 decimal comma and thousand dot separators."
-  (let* ((decimal-digits (format nil "~$" value))
-         (dot (position #\. decimal-digits)))
+  (multiple-value-bind (quot rem) (truncate value)
     (format nil "~,,'.:d,~a"
-            (truncate value)
-            (subseq decimal-digits (1+ dot)))))
+            quot
+            (round (rational (abs rem)) 1/100))))
 
-;;;
 ;;; printing an invoice (and optionally mailing it)
 ;;;
 
