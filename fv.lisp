@@ -410,19 +410,28 @@ for invoice visualisation and printout."
 ;;; How about using: (format nil "~,,'.,3:D" number)? Or something…
 ;;;
 
+;(defun polish-monetize (value)
+;  "Convert a float to a properly rounded string (to cents) with a
+;decimal comma and thousand dot separators."
+;  (let* ((reversed-string (reverse (substitute #\, #\. (format nil "~$" value))))
+;         (reversed-length (length reversed-string)))
+;    (reverse
+;     (concatenate 'string
+;                  (loop for char across reversed-string
+;                     counting char into count
+;                     collect char
+;                     when (and (eq 0 (mod count 3))
+;                               (> count 5)
+;                               (< count reversed-length)) collect #\.)))))
+
 (defun polish-monetize (value)
   "Convert a float to a properly rounded string (to cents) with a
 decimal comma and thousand dot separators."
-  (let* ((reversed-string (reverse (substitute #\, #\. (format nil "~$" value))))
-         (reversed-length (length reversed-string)))
-    (reverse
-     (concatenate 'string
-                  (loop for char across reversed-string
-                     counting char into count
-                     collect char
-                     when (and (eq 0 (mod count 3))
-                               (> count 5)
-                               (< count reversed-length)) collect #\.)))))
+  (let* ((decimal-digits (format nil "~$" value))
+         (dot (position #\. decimal-digits)))
+    (format nil "~,,'.:d,~a"
+            (truncate value)
+            (subseq decimal-digits (1+ dot)))))
 
 ;;;
 ;;; printing an invoice (and optionally mailing it)
