@@ -437,7 +437,7 @@ for invoice visualisation and printout."
   "Convert a float to a properly rounded string (to cents) with a
 decimal comma and thousand dot separators."
   (multiple-value-bind (quot rem) (truncate value)
-    (format nil "~,,'.:d,~a"
+    (format nil "~,,'.:d,~2,'0d" ;;"~,,'.:d,~a"
             quot
             (round (rational (abs rem)) 1/100))))
 
