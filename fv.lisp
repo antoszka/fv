@@ -205,10 +205,10 @@ type (not nil for cash) and payment days."
   (if (let ((nip-string (format nil "~d" nip)))
         (when (= (length nip-string) 10)
           (let ((checksum (loop for w in '(6 5 7 2 3 4 5 6 7)
-                             for i across nip-string
-                             sum (* w (digit-char-p i)))))
+                                for i across nip-string
+                                sum (* w (digit-char-p i)))))
             (= (digit-char-p (elt nip-string 9)) (rem checksum 11)))))
-      nil t))
+      t nil))
 
 ;;;
 ;;; add something to our database (returning the added item):
