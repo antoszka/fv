@@ -232,7 +232,7 @@ type (not nil for cash) and payment days."
        (when (or (select-by-nick nick :client)
                  (not nick))
          (error "~S already exists as an item nick or nick empty." nick))
-       (when (or (correct-nip-p nip)
+       (when (or (not (correct-nip-p nip))
                  (not nip))
          (error "~S is not a correct NIP number." nip))
        (push entry (getf *db* :client)) entry)
