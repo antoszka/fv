@@ -1,6 +1,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
-;;; fv.lisp – (c) 2010, 2011 Antoni Grzymała
+;;; fv.lisp -- (c) 2010, 2011 Antoni Grzymała
 ;;;
 ;;; This is my personal invoicing program, might only be useful in its
 ;;; current form in the Polish VAT-invoice area.
@@ -89,7 +89,7 @@
 (defun make-item (&key title (vat 23) (count 1) net nick)
   "Create a single item inventory entry with a title, VAT, net price and nickname."
   (list
-   :type  'item ; ← this tells us this is an item *db* entry
+   :type  'item ; <- this tells us this is an item *db* entry
    :title title
    :vat   vat
    :count count
@@ -100,7 +100,7 @@
                     nip email nick (default-item nil) (payment-days 7))
   "Create a client inventory item with name, address, postcode, city, nip, e-mail and nick"
   (list
-   :type         'client ; ← this tells us this is a client *db* entry
+   :type         'client ; <- this tells us this is a client *db* entry
    :name         name
    :address      address
    :postcode     postcode
@@ -109,7 +109,7 @@
    :email        email
    :nick         nick
    :default-item default-item
-   :payment-days payment-days)) ; ← 0 means we want cash (7 is default)
+   :payment-days payment-days)) ; <- 0 means we want cash (7 is default)
 
 (defun make-invoice (&key client items (payment-days 7)
                      year month date number)
@@ -136,7 +136,7 @@ type (not nil for cash) and payment days."
      :date         invoice-date
      :number       invoice-number
      :id           invoice-id
-     :payment-days payment-days))) ; ← 0 means we want cash
+     :payment-days payment-days))) ; <- 0 means we want cash
 
 ;;;
 ;;; return nearest possible invoice number (for a given month/year)
@@ -169,7 +169,7 @@ type (not nil for cash) and payment days."
 
 ;;;
 ;;; return a database entry based upon nick and entry group (or an invoice by id)
-;;; TODO – maybe consolidate the two, they're practically identical
+;;; TODO -- maybe consolidate the two, they're practically identical
 ;;;
 
 (defun select-by-nick (group nick)
@@ -309,7 +309,7 @@ for invoice visualisation and printout."
          (zw-net-total      0)
          (item-position     1)
          (calculated-items  nil))
-    (dolist (item (getf invoice :items)) ;; ← *should* be a list
+    (dolist (item (getf invoice :items)) ;; <- *should* be a list
       (let* ((item-vat       (getf item :vat))
              (item-count     (getf item :count))
              (item-title     (getf item :title))
@@ -317,7 +317,7 @@ for invoice visualisation and printout."
              (vat-multiplier (/ (if (equal item-vat "zw") ;; the "zw" (zwolniony)
                                     0         ;; VAT rate is
                                     item-vat) ;; effectively 0%
-                                100))) ;; TODO – check if interger here OK
+                                100))) ;; TODO -- check if interger here OK
         (cond ((equal item-vat 23)  
                (incf 23-net-total   (* item-count item-net))
                (incf 23-vat-total   (* item-count item-net 0.23))
@@ -354,7 +354,6 @@ for invoice visualisation and printout."
       (setf gross-total-int  (read-from-string int))
       (setf gross-total-cent (read-from-string cent)))
 
-
     (setf words-gross-total
           (with-output-to-string (words)
             (format-print-cardinal words gross-total-int)
@@ -375,7 +374,7 @@ for invoice visualisation and printout."
                    (+ (* payment-days 86400)
                       (encode-universal-time
                        0 0 0 invoice-date invoice-month invoice-year)))
-                ;; TODO: UTC → localtime
+                ;; TODO: UTC -> localtime
                 (declare (ignore a b c d e f))
                 (format nil
                         "Płatne przelewem do dnia: ~d/~d/~d (~d dni)."
@@ -409,29 +408,6 @@ for invoice visualisation and printout."
 ;;; Convert a float to a string with 2 decimal places, and a decimal comma
 ;;; How about using: (format nil "~,,'.,3:D" number)? Or something…
 ;;;
-
-;(defun polish-monetize (value)
-;  "Convert a float to a properly rounded string (to cents) with a
-;decimal comma and thousand dot separators."
-;  (let* ((reversed-string (reverse (substitute #\, #\. (format nil "~$" value))))
-;         (reversed-length (length reversed-string)))
-;    (reverse
-;     (concatenate 'string
-;                  (loop for char across reversed-string
-;                     counting char into count
-;                     collect char
-;                     when (and (eq 0 (mod count 3))
-;                               (> count 5)
-;                               (< count reversed-length)) collect #\.)))))
-
-;(defun polish-monetize (value)
-;  "Convert a float to a properly rounded string (to cents) with a
-;decimal comma and thousand dot separators."
-;  (let* ((decimal-digits (format nil "~$" value))
-;         (dot (position #\. decimal-digits)))
-;    (format nil "~,,'.:d,~a"
-;            (truncate value)
-;            (subseq decimal-digits (1+ dot)))))
 
 (defun polish-monetize (value)
   "Convert a float to a properly rounded string (to cents) with a
@@ -522,7 +498,7 @@ If told to, mails the invoice to the email address defined for the client."
 ;;; quick billing based on nicks (and default items)
 ;;;
 
-(defun bill (client &rest items)
+(defun bill (client &rest items) ;; TODO: Convert to etype-case
   (make-invoice
    :client (select-by-nick :client client)
    :items  (list (let ((spliced-items (car items)))
