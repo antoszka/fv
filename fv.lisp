@@ -49,21 +49,6 @@
 ;;;            (select-by-nick :item 'coś-innego)))
 ;;; (add-to-db *)
 
-;;;
-;;; Define the program directory (for loading the template and such).
-;;; *DO* MODIFY this for your own installation.
-;;;
-
-(defvar *program-directory*
-  (make-pathname
-   :directory '(:absolute "home" "antoni" "fv")))
-
-;;; We probably don't need the snippet below, as we've set up an asdf system.
-;;;
-;;; (load (compile-file (merge-pathnames
-;;;                  *program-directory*
-;;;                  (make-pathname :name "polish" :type "lisp"))))
-
 ;;; initialize the database and set default database filename:
 
 (defvar *db* (list :item () :client () :invoice ()))
