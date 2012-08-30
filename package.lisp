@@ -10,5 +10,6 @@
            #:select-invoice-by-id
            #:write-db
            #:read-db
-           #:print-invoice))
+           #:print-invoice
+           #:bill-monthly))
 
