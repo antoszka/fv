@@ -158,6 +158,7 @@ type (not nil for cash) and payment days."
 ;;;
 
 (defun select-by-nick (group nick)
+  ;;(declare (optimize (debug 3)))
   "Returns an item or client matched by nick."
   (dolist (k (getf *db* group))
     (if (eql (getf k :nick) nick)
@@ -398,7 +399,7 @@ for invoice visualisation and printout."
   "Convert a float to a properly rounded string (to cents) with a
 decimal comma and thousand dot separators."
   (multiple-value-bind (quot rem) (truncate value)
-    (format nil "~,,'.:d,~2,'0d" ;;"~,,'.:d,~a"
+    (format nil "~,,'.:d,~2,'0d"
             quot
             (round (rational (abs rem)) 1/100))))
 
@@ -483,7 +484,8 @@ If told to, mails the invoice to the email address defined for the client."
 ;;; quick billing based on nicks (and default items)
 ;;;
 
-(defun bill (client &rest items) ;; TODO: Convert to etype-case
+(defun bill (client &rest items) ;; TODO: Convert to typecase
+                                 ;; 00:34:35 < drewc> (and (not (null foo)) (typep foo 'list)) = (consp foo)
   (make-invoice
    :client (select-by-nick :client client)
    :items  (list (let ((spliced-items (car items)))
@@ -495,9 +497,10 @@ If told to, mails the invoice to the email address defined for the client."
                            (atom spliced-items)
                            (not (null spliced-items)))
                           (select-by-nick :item spliced-items))
-                         (t (select-by-nick :item
-                                            (getf (select-by-nick :client client)
-                                                  :default-item))))))))
+                         (t
+                          (select-by-nick :item
+                                          (getf (select-by-nick :client client)
+                                                :default-item))))))))
 
 ;;
 ;; monthly billing for clients billed monthly
@@ -510,7 +513,7 @@ If told to, mails the invoice to the email address defined for the client."
          (universal-time (get-universal-time))
          (date           (getdate 'date  universal-time))
          (month          (getdate 'month universal-time))
-         (year           (getdate 'year  universal-time)))
+         #|(year           (getdate 'year  universal-time))|#)
     (or (and (= date 29) (= month 2))
         (= date (aref last-days (1- month))))))
 
