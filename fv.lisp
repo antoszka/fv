@@ -488,19 +488,19 @@ If told to, mails the invoice to the email address defined for the client."
                                  ;; 00:34:35 < drewc> (and (not (null foo)) (typep foo 'list)) = (consp foo)
   (make-invoice
    :client (select-by-nick :client client)
-   :items  (list (let ((spliced-items (car items)))
-                   (cond ((and
-                           (listp spliced-items)
-                           (not (null spliced-items)))
-                          spliced-items)
-                         ((and
-                           (atom spliced-items)
-                           (not (null spliced-items)))
-                          (select-by-nick :item spliced-items))
-                         (t
-                          (select-by-nick :item
-                                          (getf (select-by-nick :client client)
-                                                :default-item))))))))
+   :items  (let ((spliced-items (car items)))
+              (cond ((and
+                      (listp spliced-items)
+                      (not (null spliced-items)))
+                     spliced-items)
+                    ((and
+                      (atom spliced-items)
+                      (not (null spliced-items)))
+                     (list (select-by-nick :item spliced-items)))
+                    (t
+                     (list (select-by-nick :item
+                                           (getf (select-by-nick :client client)
+                                                 :default-item))))))))
 
 ;;
 ;; monthly billing for clients billed monthly
