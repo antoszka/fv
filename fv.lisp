@@ -82,7 +82,7 @@
    :nick  nick))
 
 (defun make-client (&key name address postcode (city "Warszawa")
-                    nip email nick (default-item nil) (payment-days 7))
+                      nip email nick (default-item nil) (payment-days 7))
   "Create a client inventory item with name, address, postcode, city, nip, e-mail and nick"
   (list
    :type         'client ; <- this tells us this is a client *db* entry
@@ -97,7 +97,7 @@
    :payment-days payment-days)) ; <- 0 means we want cash (7 is default)
 
 (defun make-invoice (&key client items (payment-days 7)
-                     year month date number)
+                       year month date number)
   "Create an invoice with client, item list and date, payment
 type (not nil for cash) and payment days."
   (let* ((universal-time (get-universal-time))
@@ -249,8 +249,8 @@ type (not nil for cash) and payment days."
 (defun write-db (&optional (pathname *db-file*))
   "Saves the invoice/client/item database to a file."
   (with-open-file (output pathname
-                       :direction :output
-                       :if-exists :supersede)
+                          :direction :output
+                          :if-exists :supersede)
     (with-standard-io-syntax
       (write *db* :case :downcase :pretty t :stream output) ; pretty-print database contents
       (format output "~%"))))                               ; add trailing newline
@@ -485,22 +485,22 @@ If told to, mails the invoice to the email address defined for the client."
 ;;;
 
 (defun bill (client &rest items) ;; TODO: Convert to typecase
-                                 ;; 00:34:35 < drewc> (and (not (null foo)) (typep foo 'list)) = (consp foo)
+  ;; 00:34:35 < drewc> (and (not (null foo)) (typep foo 'list)) = (consp foo)
   (make-invoice
    :client (select-by-nick :client client)
    :items  (let ((spliced-items (car items)))
-              (cond ((and
-                      (listp spliced-items)
-                      (not (null spliced-items)))
-                     spliced-items)
-                    ((and
-                      (atom spliced-items)
-                      (not (null spliced-items)))
-                     (list (select-by-nick :item spliced-items)))
-                    (t
-                     (list (select-by-nick :item
-                                           (getf (select-by-nick :client client)
-                                                 :default-item))))))))
+             (cond ((and
+                     (listp spliced-items)
+                     (not (null spliced-items)))
+                    spliced-items)
+                   ((and
+                     (atom spliced-items)
+                     (not (null spliced-items)))
+                    (list (select-by-nick :item spliced-items)))
+                   (t
+                    (list (select-by-nick :item
+                                          (getf (select-by-nick :client client)
+                                                :default-item))))))))
 
 ;;
 ;; monthly billing for clients billed monthly
