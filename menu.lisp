@@ -66,7 +66,7 @@
                  (let ((item (make-item :title title
                                         :vat   (or (parse-integer vat :junk-allowed t) "zw")
                                         :count (or (parse-integer count :junk-allowed t) 1)
-                                        :net   (parse-integer net)
+                                        :net   (read-from-string net)
                                         :nick  (intern (string-upcase nick) :fv))))
                    (terpri) (print item) (terpri)
                    (when (yes-or-no-p "Item OK? Push on list?")

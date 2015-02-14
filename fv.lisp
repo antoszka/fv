@@ -1,6 +1,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
-;;; fv.lisp -- (c) 2010, 2011 Antoni Grzymała
+;;; fv.lisp -- (c) 2010, 2011, 2015 Antoni Grzymała
 ;;;
 ;;; This is my personal invoicing program, might only be useful in its
 ;;; current form in the Polish VAT-invoice area.
@@ -278,7 +278,7 @@ for invoice visualisation and printout."
          (net-total         0)
          (vat-total         0)
          (words-gross-total "")
-         (payment-days      (getf (getf invoice :client) :payment-days))
+         (payment-days      (getf invoice :payment-days))
          (invoice-date      (getf invoice :date))
          (invoice-month     (getf invoice :month))
          (invoice-year      (getf invoice :year))
@@ -457,6 +457,8 @@ If told to, mails the invoice to the email address defined for the client."
                                            (list (namestring output-filename)))))
         (when (= (sb-ext:process-exit-code exit-code) 0)
           (princ "Success!")
+          (princ "Waiting 1 sec...")
+          (sleep 1)
           (terpri)
           (dolist (extension (list "aux" "log" "tex"))
             (delete-file (make-pathname :type extension :defaults output-filename)))
