@@ -8,6 +8,7 @@
 
 (defun ask (question)
   (format T "~a" question)
+  (finish-output)
   (read-line))
 
 (defun nullify (string)
