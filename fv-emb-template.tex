@@ -4,6 +4,7 @@
 %%% (c) 2010 by Antoni Grzymała
 
 \documentclass[polish]{dinbrief}
+\newcommand{\currencyShort}{<% @var currency-short %>}
 \renewcommand{\familydefault}{\sfdefault}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
@@ -27,7 +28,7 @@
 
 \begin{document}
 \begin{flushleft}
-\textbf{\Large Faktura VAT}
+\textbf{\Large <% @var invoice-title %>}
 \par\end{flushleft}{\Large \par}
 
 \begin{flushleft}
@@ -55,7 +56,7 @@
 <% @var seller-name %> &  & <% @var buyer-name %>\tabularnewline
 <% @var seller-address %> &  & <% @var buyer-address %>\tabularnewline
 <% @var seller-postcode %> <% @var seller-city %> &  & <% @var buyer-postcode %> <% @var buyer-city %>\tabularnewline
-NIP: <% @var seller-nip %> &  & NIP: <% @var buyer-nip %>\tabularnewline
+NIP: <% @var seller-nip %> &  & <% (when (getf env :buyer-name) "NIP:") %><% @var buyer-nip %>\tabularnewline
 Konto: <% @var seller-account %> &  & \tabularnewline
 \cline{1-1} \cline{3-3} 
 \end{tabular}
@@ -79,20 +80,20 @@ lp. & nazwa & cena netto & \multicolumn{1}{r}{ilość} & \multicolumn{1}{r}{wart
 
 <% (dolist (item-calculations (getf env :calculated-items))
 	   (format t
-		   "~{\\multicolumn\{1\}\{|r|\}\{~a\} & \\multicolumn\{1\}\{>\{\\raggedleft\}p\{0.2\\paperwidth\}|\}\{~a\} & \\multicolumn\{1\}\{r|\}\{~a zł\} & ~a & ~a zł & ~a\\ & ~a zł & ~a zł\\tabularnewline\\hline~}~%%~%"
+		   "~{\\multicolumn\{1\}\{|r|\}\{~a\} & \\multicolumn\{1\}\{>\{\\raggedleft\}p\{0.2\\paperwidth\}|\}\{~a\} & \\multicolumn\{1\}\{r|\}\{~a \\currencyShort{}\} & ~a & ~a \\currencyShort{} & ~a\\ & ~a \\currencyShort{} & ~a \\currencyShort{}\\tabularnewline\\hline~}~%%~%"
 		   item-calculations)) %>
 
 %%% This is the summary section:
 
- &  &  & Łącznie: & <% @var net-total %> zł & X & <% @var vat-total %> zł & <% @var gross-total %> zł\tabularnewline
+ &  &  & Łącznie: & <% @var net-total %> \currencyShort{} & X & <% @var vat-total %> \currencyShort{} & <% @var gross-total %> \currencyShort{}\tabularnewline
 \cline{5-8} 
- &  &  &  & <% @var 23-net-total %> zł & 23\% & <% @var 23-vat-total %> zł & <% @var 23-gross-total %> zł\tabularnewline
+ &  &  &  & <% @var 23-net-total %> \currencyShort{} & 23\% & <% @var 23-vat-total %> \currencyShort{} & <% @var 23-gross-total %> \currencyShort{}\tabularnewline
 \cline{5-8} 
- &  &  &  & <% @var 8-net-total %> zł & 8\% & <% @var 8-vat-total %> zł & <% @var 8-gross-total %> zł\tabularnewline
+ &  &  &  & <% @var 8-net-total %> \currencyShort{} & 8\% & <% @var 8-vat-total %> \currencyShort{} & <% @var 8-gross-total %> \currencyShort{}\tabularnewline
 \cline{5-8} 
- &  &  &  & <% @var 5-net-total %> zł & 5\% & <% @var 5-vat-total %> zł & <% @var 5-gross-total %> zł\tabularnewline
+ &  &  &  & <% @var 5-net-total %> \currencyShort{} & 5\% & <% @var 5-vat-total %> \currencyShort{} & <% @var 5-gross-total %> \currencyShort{}\tabularnewline
 \cline{5-8} 
- &  &  &  & <% @var zw-net-total %> zł & zw. & 0,00 zł & <% @var zw-net-total %> zł\tabularnewline
+ &  &  &  & <% @var zw-net-total %> \currencyShort{} & zw. & 0,00 \currencyShort{} & <% @var zw-net-total %> \currencyShort{}\tabularnewline
 \cline{5-8} 
 \end{tabular}
 \par\end{flushright}
@@ -105,7 +106,7 @@ lp. & nazwa & cena netto & \multicolumn{1}{r}{ilość} & \multicolumn{1}{r}{wart
 
 
 \begin{flushright}
-Do zapłaty: <% @var gross-total %> zł.\\
+Do zapłaty: <% @var gross-total %> \currencyShort{}.\\
 Słownie: <% @var words-gross-total %>, <% @var gross-total-cent %>/100.\\
 <% @var payment-form %> %%% Forma płatności.
 \par\end{flushright}

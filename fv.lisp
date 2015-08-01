@@ -52,6 +52,9 @@
 ;;; initialize the database and set default database filename:
 
 (defvar *db* (list :item () :client () :invoice ()))
+
+(defparameter *program-directory* (asdf:component-relative-pathname (asdf:find-system :fv)))
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defvar *db-file* (merge-pathnames (user-homedir-pathname) #P".fvdb.lisp"))
   (defvar *rc-file* (merge-pathnames (user-homedir-pathname) #P".fvrc.lisp"))
@@ -97,7 +100,7 @@
    :payment-days payment-days)) ; <- 0 means we want cash (7 is default)
 
 (defun make-invoice (&key client items (payment-days 7)
-                       year month date number)
+                       year month date number (currency :pln))
   "Create an invoice with client, item list and date, payment
 type (not nil for cash) and payment days."
   (let* ((universal-time (get-universal-time))
@@ -121,7 +124,8 @@ type (not nil for cash) and payment days."
      :date         invoice-date
      :number       invoice-number
      :id           invoice-id
-     :payment-days payment-days))) ; <- 0 means we want cash
+     :payment-days payment-days
+     :currency currency))) ; <- 0 means we want cash
 
 ;;;
 ;;; return nearest possible invoice number (for a given month/year)
@@ -160,10 +164,8 @@ type (not nil for cash) and payment days."
 (defun select-by-nick (group nick)
   ;;(declare (optimize (debug 3)))
   "Returns an item or client matched by nick."
-  (dolist (k (getf *db* group))
-    (if (eql (getf k :nick) nick)
-        (return k)
-        nil)))
+  (find nick (getf *db* group) :key (lambda (plist)
+                                      (getf plist :nick))))
 
 (defun select-invoice-by-id (id)
   "Returns an invoice when id is matched in the db."
@@ -188,19 +190,18 @@ type (not nil for cash) and payment days."
 
 (defun correct-nip-p (nip)
   "Check the NIP (VAT number) for correctness, expects an int"
-  (if (let ((nip-string (format nil "~d" nip)))
-        (when (= (length nip-string) 10)
-          (let ((checksum (loop for w in '(6 5 7 2 3 4 5 6 7)
-                                for i across nip-string
-                                sum (* w (digit-char-p i)))))
-            (= (digit-char-p (elt nip-string 9)) (rem checksum 11)))))
-      t nil))
+  (let ((nip-string (format nil "~d" nip)))
+    (when (= (length nip-string) 10)
+      (let ((checksum (loop for w in '(6 5 7 2 3 4 5 6 7)
+                         for i across nip-string
+                         sum (* w (digit-char-p i)))))
+        (= (digit-char-p (elt nip-string 9)) (rem checksum 11))))))
 
 ;;;
 ;;; add something to our database (returning the added item):
 ;;;
 
-(defun add-to-db (entry)
+(defun add-to-db (entry &key (check-nip-p t))
   "Add anything to the db (in the right place) and do some verification tests."
   (let ((nick   (getf entry :nick))
         (nip    (getf entry :nip))
@@ -218,8 +219,9 @@ type (not nil for cash) and payment days."
        (when (or (select-by-nick nick :client)
                  (not nick))
          (error "~S already exists as an item nick or nick empty." nick))
-       (when (or (not (correct-nip-p nip))
-                 (not nip))
+       (when (and check-nip-p
+                  (or (not (correct-nip-p nip))
+                      (not nip)))
          (error "~S is not a correct NIP number." nip))
        (push entry (getf *db* :client)) entry)
       ;; add an invoice and return it
@@ -262,8 +264,48 @@ type (not nil for cash) and payment days."
                            :direction :input)
       (with-standard-io-syntax
         (let ((*package* (find-package :fv)))
-          (setf *db* (read input))))))
+          (setf *db* (read input nil nil))))))
   '*db*)
+
+(defmacro with-db ((&optional (pathname *db-file*)) &body body)
+  `(progn
+     (read-db ,pathname)
+     ,@body
+     (write-db ,pathname)))
+
+(defparameter *currencies* '((:eur "euro" "euro" "euro")
+                             (:pln "złoty" "złote" "złotych")
+                             (:usd "dolar" "dolary" "dolarów")))
+
+(defun get-currency-short (currency)
+  (ecase currency
+    (:eur "\\€")
+    (:usd "usd")
+    (:pln "zł")))
+
+(defun get-account-number (currency)
+  (or (case currency
+        (:pln (or (getf *company-data* :account-pln)
+                  (getf *company-data* :account)))
+        (:eur (getf *company-data* :account-eur))
+        (:usd (getf *company-data* :account-usd)))
+      (warn "Foreign Currency Account not defined. Using polish one.")
+      (getf *company-data* :account)
+      (getf *company-data* :account-pln)))
+
+(defun print-currency (gross-total stream &optional (currency :pln))
+  ;; backward compatibility
+  (unless currency
+    (setf currency :pln))
+  (let ((words (cdr (assoc currency *currencies*))))
+    (format stream " ~a"
+            (multiple-value-bind (tens ones)
+                (truncate gross-total 10)
+              (if (and (= tens 0) (= ones 1))
+                (first words)
+                  (case ones
+                    ((2 3 4) (second words))
+                    (otherwise (third words))))))))
 
 ;;;
 ;;; calculate all necessary invoice fields
@@ -282,6 +324,7 @@ for invoice visualisation and printout."
          (invoice-date      (getf invoice :date))
          (invoice-month     (getf invoice :month))
          (invoice-year      (getf invoice :year))
+         (invoice-currency  (getf invoice :currency))
          (payment-form      "")
          (23-net-total      0)
          (23-vat-total      0)
@@ -304,11 +347,11 @@ for invoice visualisation and printout."
                                     0         ;; VAT rate is
                                     item-vat) ;; effectively 0%
                                 100))) ;; TODO -- check if interger here OK
-        (cond ((equal item-vat 23)  
+        (cond ((equal item-vat 23)
                (incf 23-net-total   (* item-count item-net))
                (incf 23-vat-total   (* item-count item-net 0.23))
                (incf 23-gross-total (* item-count item-net 1.23)))
-              ((equal item-vat 8)   
+              ((equal item-vat 8)
                (incf 8-net-total    (* item-count item-net))
                (incf 8-vat-total    (* item-count item-net 0.08))
                (incf 8-gross-total  (* item-count item-net 1.08)))
@@ -316,7 +359,7 @@ for invoice visualisation and printout."
                (incf 5-net-total    (* item-count item-net))
                (incf 5-vat-total    (* item-count item-net 0.05))
                (incf 5-gross-total  (* item-count item-net 1.05)))
-              ((equal item-vat "zw") 
+              ((equal item-vat "zw")
                (incf zw-net-total   (* item-count item-net))))
         (push (list item-position
                     item-title
@@ -343,14 +386,7 @@ for invoice visualisation and printout."
     (setf words-gross-total
           (with-output-to-string (words)
             (format-print-cardinal words gross-total-int)
-            (format words " ~a"
-                    (multiple-value-bind (tens ones)
-                        (truncate gross-total-int 10)
-                      (if (and (= tens 0) (= ones 1))
-                          "złoty"
-                          (case ones
-                            ((2 3 4) "złote")
-                            (otherwise "złotych")))))))
+            (print-currency gross-total-int words invoice-currency)))
 
     (setf payment-form
           (if (<= payment-days 0)
@@ -377,6 +413,7 @@ for invoice visualisation and printout."
           :invoice-date      invoice-date
           :invoice-month     invoice-month
           :invoice-year      invoice-year
+          :currency  invoice-currency
           :payment-form      payment-form
           :23-net-total      (polish-monetize 23-net-total)
           :23-vat-total      (polish-monetize 23-vat-total)
@@ -406,7 +443,9 @@ decimal comma and thousand dot separators."
 ;;; printing an invoice (and optionally mailing it)
 ;;;
 
-(defun print-invoice (invoice &key mail)
+(defvar *fv-dir* (user-homedir-pathname))
+
+(defun print-invoice (invoice &key mail (fv-dir *fv-dir*) (invoice-title "Faktura VAT"))
   "Creates a tex printout file of a given invoice by means of executing emb code in a tex template.
 If told to, mails the invoice to the email address defined for the client."
   (let* ((env-plist
@@ -420,17 +459,19 @@ If told to, mails the invoice to the email address defined for the client."
                 :seller-postcode   (getf *company-data* :postcode)
                 :seller-city       (getf *company-data* :city)
                 :seller-nip        (getf *company-data* :nip)
-                :seller-account    (getf *company-data* :account)
+                :seller-account    (get-account-number (getf invoice :currency))
                 :buyer-name        (getf (getf invoice :client) :name)
                 :buyer-address     (getf (getf invoice :client) :address)
                 :buyer-city        (getf (getf invoice :client) :city)
                 :buyer-postcode    (getf (getf invoice :client) :postcode)
                 :buyer-nip         (getf (getf invoice :client) :nip)
-                :item-list         (getf invoice :items)))
+                :item-list         (getf invoice :items)
+                :currency-short (get-currency-short (getf invoice :currency))
+                :invoice-title invoice-title))
          (output-filename (merge-pathnames
-                           (user-homedir-pathname)
+                           fv-dir
                            (format nil
-                                   (if (getf invoice :corrective) 
+                                   (if (getf invoice :corrective)
                                        "fk-~d-~2,'0d-~2,'0d-~a.tex"
                                        "fv-~d-~2,'0d-~2,'0d-~a.tex")
                                    (getf invoice :year)
@@ -449,38 +490,35 @@ If told to, mails the invoice to the email address defined for the client."
       (format output "~a"
               (emb:execute-emb "template"
                                :env (append env-plist (calculate-invoice-fields invoice)))))
-
-    #+(and sbcl unix)
-    (progn
-      (princ "DEBUG: Running pdflatex... ")
-      (let ((exit-code (sb-ext:run-program "/usr/bin/pdflatex"
-                                           (list (namestring output-filename)))))
-        (when (= (sb-ext:process-exit-code exit-code) 0)
-          (princ "Success!")
-          (princ "Waiting 1 sec...")
-          (sleep 1)
-          (terpri)
-          (dolist (extension (list "aux" "log" "tex"))
-            (delete-file (make-pathname :type extension :defaults output-filename)))
-          (when (and
-                 (not  (null mail))
-                 (getf (getf invoice :client) :email)) ; and email address available
-            (sb-ext:run-program "/usr/bin/mailx"
-                                (list "-a" (namestring (merge-pathnames
-                                                        *program-directory*
-                                                        (make-pathname :name "email-template"
-                                                                       :type "txt"))) ; message body
-                                      "-a" (namestring (make-pathname :type "pdf"
-                                                                      :defaults output-filename)) ; PDF attachment
-                                      "-r" (format nil "~a <~a>"
-                                                   (getf *company-data* :name)
-                                                   (getf *company-data* :email))
-                                      "-s" (format nil "Faktura od ~a za ~a/~a"
-                                                   (getf *company-data* :name)
-                                                   (getf invoice :month)
-                                                   (getf invoice :year))
-                                      "-b" (getf *company-data* :email) ; bcc copy to self
-                                      (getf (getf invoice :client) :email)))))))))
+    #-unix
+    (Error "Windows is not supported")
+    (format t "DEBUG: Running pdflatex... /usr/bin/pdflatex -output-directory=~a ~a" fv-dir (namestring output-filename))
+    (let* ((command (format nil "/usr/bin/pdflatex -output-directory=~a ~a" fv-dir (namestring output-filename)))
+           (exit-code (nth-value 2 (uiop:run-program command))))
+      (when (zerop exit-code)
+        (princ "Success!")
+        (dolist (extension (list "aux" "log" "tex"))
+          (delete-file (make-pathname :type extension :defaults output-filename)))
+        (when (and
+               mail
+               (getf (getf invoice :client) :email)) ; and email address available
+          (princ "DEBUG: Sending e-mail...")
+          (uiop:run-program (format nil "/usr/bin/mailx ~{~a~^ ~}"
+                                    (list "-a" (namestring (merge-pathnames
+                                                            *program-directory*
+                                                            (make-pathname :name "email-template"
+                                                                           :type "txt"))) ; message body
+                                          "-a" (namestring (make-pathname :type "pdf"
+                                                                          :defaults output-filename)) ; PDF attachment
+                                          "-r" (format nil "~a <~a>"
+                                                       (getf *company-data* :name)
+                                                       (getf *company-data* :email))
+                                          "-s" (format nil "Faktura od ~a za ~a/~a"
+                                                       (getf *company-data* :name)
+                                                       (getf invoice :month)
+                                                       (getf invoice :year))
+                                          "-b" (getf *company-data* :email) ; bcc copy to self
+                                          (getf (getf invoice :client) :email)))))))))
 
 ;;;
 ;;; quick billing based on nicks (and default items)

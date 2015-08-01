@@ -1,4 +1,3 @@
-;;
 (in-package #:fv)
 ;;
 
@@ -10,7 +9,8 @@
    :city "Miasto"
    :nip "NIP firmy"
    :email "firma@firma.tld"
-   :account "00 1111 2222 3333 4444 5555 6666"))
+   :account-pln "00 1111 2222 3333 4444 5555 6666"
+   :account-usd "00 1111 2222 3333 4444 5555 6666"))
 
 (defparameter *monthly-billed-clients*
   (list 'foo 
@@ -18,5 +18,4 @@
         'baz
         'xyzzy))
 
-(defparameter *program-directory*
-  (make-pathname :directory '(:absolute "home" "user" "fv")))
+(setf *fv-dir* (truename "~/invoices"))
