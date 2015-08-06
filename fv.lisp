@@ -261,7 +261,8 @@ type (not nil for cash) and payment days."
   "Loads the invoice/client/item database from a file"
   (let ((*read-eval* nil))
     (with-open-file (input pathname
-                           :direction :input)
+                           :direction         :input
+                           :if-does-not-exist :create)
       (with-standard-io-syntax
         (let ((*package* (find-package :fv)))
           (setf *db* (read input nil nil))))))
