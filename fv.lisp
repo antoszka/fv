@@ -124,8 +124,8 @@ type (not nil for cash) and payment days."
      :date         invoice-date
      :number       invoice-number
      :id           invoice-id
-     :payment-days payment-days
-     :currency currency))) ; <- 0 means we want cash
+     :payment-days payment-days         ; <- 0 means we want cash
+     :currency     currency)))
 
 ;;;
 ;;; return nearest possible invoice number (for a given month/year)
