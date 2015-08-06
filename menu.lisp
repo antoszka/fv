@@ -7,7 +7,7 @@
 ;;
 
 (defun ask (question)
-  (format T "~a" question)
+  (format T "~&~a" question)
   (finish-output)
   (read-line))
 

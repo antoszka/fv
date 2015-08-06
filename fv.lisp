@@ -124,8 +124,8 @@ type (not nil for cash) and payment days."
      :date         invoice-date
      :number       invoice-number
      :id           invoice-id
-     :payment-days payment-days
-     :currency currency))) ; <- 0 means we want cash
+     :payment-days payment-days         ; <- 0 means we want cash
+     :currency     currency)))
 
 ;;;
 ;;; return nearest possible invoice number (for a given month/year)
@@ -261,7 +261,8 @@ type (not nil for cash) and payment days."
   "Loads the invoice/client/item database from a file"
   (let ((*read-eval* nil))
     (with-open-file (input pathname
-                           :direction :input)
+                           :direction         :input
+                           :if-does-not-exist :create)
       (with-standard-io-syntax
         (let ((*package* (find-package :fv)))
           (setf *db* (read input nil nil))))))
@@ -446,8 +447,11 @@ decimal comma and thousand dot separators."
 (defvar *fv-dir* (user-homedir-pathname))
 
 (defun print-invoice (invoice &key mail (fv-dir *fv-dir*) (invoice-title "Faktura VAT"))
-  "Creates a tex printout file of a given invoice by means of executing emb code in a tex template.
-If told to, mails the invoice to the email address defined for the client."
+  "Creates a tex printout file of a given invoice by means of
+executing emb code in a tex template.
+
+If told to, mails the invoice to the email address defined for the
+client."
   (let* ((env-plist
           (list :invoice-id        (getf invoice :id)
                 :invoice-date-full (format nil "~a/~a/~a"
@@ -478,24 +482,26 @@ If told to, mails the invoice to the email address defined for the client."
                                    (getf invoice :month)
                                    (getf invoice :number)
                                    (getf (getf invoice :client) :nick)))))
-    (emb:register-emb "template" (merge-pathnames *program-directory*
-                                                  (make-pathname :name
-                                                                 (if (getf invoice :corrective)
-                                                                     "fk-emb-template"
-                                                                     "fv-emb-template")
-                                                                 :type "tex")))
+    (emb:register-emb "template"
+                      (merge-pathnames *program-directory*
+                                       (make-pathname :name
+                                                      (if (getf invoice :corrective)
+                                                          "fk-emb-template"
+                                                          "fv-emb-template")
+                                                      :type "tex")))
     (with-open-file (output output-filename
                             :direction :output
                             :if-exists :supersede)
       (format output "~a"
               (emb:execute-emb "template"
-                               :env (append env-plist (calculate-invoice-fields invoice)))))
+                               :env (append env-plist
+                                            (calculate-invoice-fields invoice)))))
     #-unix
     (Error "Windows is not supported")
-    (format t "DEBUG: Running pdflatex... /usr/bin/pdflatex -output-directory=~a ~a" fv-dir (namestring output-filename))
-    (let* ((command (format nil "/usr/bin/pdflatex -output-directory=~a ~a" fv-dir (namestring output-filename)))
-           (exit-code (nth-value 2 (uiop:run-program command))))
-      (when (zerop exit-code)
+    (let ((command (format nil "pdflatex -output-directory=~a ~a" fv-dir
+                           (namestring output-filename))))
+      (format t "DEBUG: Running pdflatex... ~A" command)
+      (when (zerop (nth-value 2 (uiop:run-program command)))
         (princ "Success!")
         (dolist (extension (list "aux" "log" "tex"))
           (delete-file (make-pathname :type extension :defaults output-filename)))
@@ -503,22 +509,25 @@ If told to, mails the invoice to the email address defined for the client."
                mail
                (getf (getf invoice :client) :email)) ; and email address available
           (princ "DEBUG: Sending e-mail...")
-          (uiop:run-program (format nil "/usr/bin/mailx ~{~a~^ ~}"
-                                    (list "-a" (namestring (merge-pathnames
-                                                            *program-directory*
-                                                            (make-pathname :name "email-template"
-                                                                           :type "txt"))) ; message body
-                                          "-a" (namestring (make-pathname :type "pdf"
-                                                                          :defaults output-filename)) ; PDF attachment
-                                          "-r" (format nil "~a <~a>"
-                                                       (getf *company-data* :name)
-                                                       (getf *company-data* :email))
-                                          "-s" (format nil "Faktura od ~a za ~a/~a"
-                                                       (getf *company-data* :name)
-                                                       (getf invoice :month)
-                                                       (getf invoice :year))
-                                          "-b" (getf *company-data* :email) ; bcc copy to self
-                                          (getf (getf invoice :client) :email)))))))))
+          (uiop:run-program
+           (format nil "mailx ~{~a~^ ~}"
+                   (list "-a" (namestring (merge-pathnames
+                                           *program-directory*
+                                           ;; message body
+                                           (make-pathname :name "email-template"
+                                                          :type "txt")))
+                         ;; PDF attachment
+                         "-a" (namestring (make-pathname :type "pdf"
+                                                         :defaults output-filename))
+                         "-r" (format nil "~a <~a>"
+                                      (getf *company-data* :name)
+                                      (getf *company-data* :email))
+                         "-s" (format nil "Faktura od ~a za ~a/~a"
+                                      (getf *company-data* :name)
+                                      (getf invoice :month)
+                                      (getf invoice :year))
+                         "-b" (getf *company-data* :email) ; bcc copy to self
+                         (getf (getf invoice :client) :email)))))))))
 
 ;;;
 ;;; quick billing based on nicks (and default items)

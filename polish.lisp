@@ -62,13 +62,16 @@
 
 (defparameter *ordinal-tens-m*
   #(nil "dziesiąty" "dwudziesty" "trzydziesty" "czterdziesty"
-        "pięćdziesiąty" "sześćdziesiąty" "siedemdziesiąty" "osiemdziesiąty" "dziewięćdziesiąty"))
+    "pięćdziesiąty" "sześćdziesiąty" "siedemdziesiąty" "osiemdziesiąty"
+    "dziewięćdziesiąty"))
 (defparameter *ordinal-tens-f*
   #(nil "dziesiąta" "dwudziesta" "trzydziesta" "czterdziesta"
-        "pięćdziesiąta" "sześćdziesiąta" "siedemdziesiąta" "osiemdziesiąta" "dziewięćdziesiąta"))
+    "pięćdziesiąta" "sześćdziesiąta" "siedemdziesiąta" "osiemdziesiąta"
+    "dziewięćdziesiąta"))
 (defparameter *ordinal-tens-n*
   #(nil "dziesiąte" "dwudzieste" "trzydzieste" "czterdzieste"
-        "pięćdziesiąte" "sześćdziesiąte" "siedemdziesiąte" "osiemdziesiąte" "dziewięćdziesiąte"))
+    "pięćdziesiąte" "sześćdziesiąte" "siedemdziesiąte" "osiemdziesiąte"
+    "dziewięćdziesiąte"))
 
 (defun format-print-small-cardinal (stream n)
   (multiple-value-bind (hundreds rem) (truncate n 100)
