@@ -493,8 +493,8 @@ If told to, mails the invoice to the email address defined for the client."
                                :env (append env-plist (calculate-invoice-fields invoice)))))
     #-unix
     (Error "Windows is not supported")
-    (format t "DEBUG: Running pdflatex... /usr/bin/pdflatex -output-directory=~a ~a" fv-dir (namestring output-filename))
-    (let* ((command (format nil "/usr/bin/pdflatex -output-directory=~a ~a" fv-dir (namestring output-filename)))
+    (format t "DEBUG: Running pdflatex... pdflatex -output-directory=~a ~a" fv-dir (namestring output-filename))
+    (let* ((command (format nil "pdflatex -output-directory=~a ~a" fv-dir (namestring output-filename)))
            (exit-code (nth-value 2 (uiop:run-program command))))
       (when (zerop exit-code)
         (princ "Success!")
@@ -504,7 +504,7 @@ If told to, mails the invoice to the email address defined for the client."
                mail
                (getf (getf invoice :client) :email)) ; and email address available
           (princ "DEBUG: Sending e-mail...")
-          (uiop:run-program (format nil "/usr/bin/mailx ~{~a~^ ~}"
+          (uiop:run-program (format nil "mailx ~{~a~^ ~}"
                                     (list "-a" (namestring (merge-pathnames
                                                             *program-directory*
                                                             (make-pathname :name "email-template"
