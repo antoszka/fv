@@ -4,11 +4,12 @@
 %%% (c) 2010 by Antoni Grzymała
 
 \documentclass[polish]{dinbrief}
-\newcommand{\currencyShort}{<% @var currency-short %>}
 \renewcommand{\familydefault}{\sfdefault}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{array}
+
+\newcommand{\currencyShort}{<% @var currency-short %>}
 
 \makeatletter
 
@@ -56,7 +57,7 @@
 <% @var seller-name %> &  & <% @var buyer-name %>\tabularnewline
 <% @var seller-address %> &  & <% @var buyer-address %>\tabularnewline
 <% @var seller-postcode %> <% @var seller-city %> &  & <% @var buyer-postcode %> <% @var buyer-city %>\tabularnewline
-NIP: <% @var seller-nip %> &  & <% (when (getf env :buyer-name) "NIP:") %><% @var buyer-nip %>\tabularnewline
+NIP: <% @var seller-nip %> &  & <% (when (getf env :buyer-nip) (princ "NIP: ")) %><% @var buyer-nip %>\tabularnewline
 Konto: <% @var seller-account %> &  & \tabularnewline
 \cline{1-1} \cline{3-3} 
 \end{tabular}
