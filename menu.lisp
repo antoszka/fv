@@ -7,7 +7,7 @@
 ;;
 
 (defun ask (question)
-  (format T "~&~a" question)
+  (format T "~a" question)
   (finish-output)
   (read-line))
 
@@ -20,7 +20,7 @@
   (dolist (client (getf *db* :client))
     (let ((nick (getf client :nick))
           (name (getf client :name)))
-      (format t "~&~a – ~a" nick name))))
+      (format t "~&~a – ~a~&" nick name))))
 
 (defun select-client ()
   (list-clients)
