@@ -18,4 +18,4 @@
         'baz
         'xyzzy))
 
-(setf *fv-dir* (truename "~/invoices"))
+(setf *fv-dir* (truename (ensure-directories-exist #P"~/invoices")))
