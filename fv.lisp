@@ -519,10 +519,10 @@ client."
                          ;; PDF attachment
                          "-a" (namestring (make-pathname :type "pdf"
                                                          :defaults output-filename))
-                         "-r" (format nil "~a <~a>"
+                         "-r" (format nil "'~a <~a>'"
                                       (getf *company-data* :name)
                                       (getf *company-data* :email))
-                         "-s" (format nil "Faktura od ~a za ~a/~a"
+                         "-s" (format nil "'Faktura od ~a za ~a/~a'"
                                       (getf *company-data* :name)
                                       (getf invoice :month)
                                       (getf invoice :year))
