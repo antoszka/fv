@@ -31,7 +31,7 @@
 ;;; + corrective invoices
 ;;; * removing entries from database
 ;;; * selecting invoices by certain criteria
-;;; * interactive mode (text UI) with browsing clients/items
+;;; * interactive mode (text UI) with browsing clients/items (KINDA DONE with qa-* functions)
 ;;; * command-line switches for scripting
 ;;;
 ;;; --- later:
